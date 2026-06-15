@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+
+.duckdb_history
+*.duckdb
+*.duckdb.wal
+*.tmp
+
+student_submission/
+submissions/
+screenshots/
+
+# Local instructor-only material; do not publish in the student repo.
+instructor/
+draft/
+
+.DS_Store
+Thumbs.db

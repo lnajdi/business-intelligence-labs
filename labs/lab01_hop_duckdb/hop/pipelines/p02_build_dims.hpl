@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pipeline>
+  <info>
+    <name>p02_build_dims</name>
+    <name_sync_with_filename>Y</name_sync_with_filename>
+    <description>Build warehouse dimensions from staging. Reference skeleton — validate in Hop GUI.</description>
+    <pipeline_type>Normal</pipeline_type>
+    <capture_transform_performance>N</capture_transform_performance>
+  </info>
+
+  <order>
+    <hop><from>Start</from>             <to>Build dim_date</to>     <enabled>Y</enabled></hop>
+    <hop><from>Build dim_date</from>    <to>Build dim_customer</to> <enabled>Y</enabled></hop>
+    <hop><from>Build dim_customer</from><to>Build dim_product</to>  <enabled>Y</enabled></hop>
+    <hop><from>Build dim_product</from> <to>Build dim_channel</to>  <enabled>Y</enabled></hop>
+    <hop><from>Build dim_channel</from> <to>Build dim_geo</to>      <enabled>Y</enabled></hop>
+  </order>
+
+  <transform>
+    <name>Start</name>
+    <type>Dummy</type>
+    <distribute>Y</distribute><copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <attributes/>
+    <GUI><xloc>64</xloc><yloc>80</yloc></GUI>
+  </transform>
+
+  <transform>
+    <name>Build dim_date</name>
+    <type>ExecSql</type>
+    <distribute>Y</distribute><copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <connection>DuckDB_Lab1</connection>
+    <execute_each_row>N</execute_each_row>
+    <single_statement>N</single_statement>
+    <replace_variables>N</replace_variables>
+    <quoteString>N</quoteString>
+    <sql>TRUNCATE warehouse.dim_date;
+INSERT INTO warehouse.dim_date SELECT YEAR(dt)*10000+MONTH(dt)*100+DAY(dt),dt,YEAR(dt),QUARTER(dt),MONTH(dt),MONTHNAME(dt),DAY(dt),DAYNAME(dt),DAYOFWEEK(dt),DAYOFWEEK(dt) IN (0,6),CASE WHEN MONTH(dt) IN (12,1,2) THEN 'Winter' WHEN MONTH(dt) IN (3,4,5) THEN 'Spring' WHEN MONTH(dt) IN (6,7,8) THEN 'Summer' ELSE 'Autumn' END FROM (SELECT UNNEST(GENERATE_SERIES(DATE '2024-01-01',DATE '2026-12-31',INTERVAL '1 day')) AS dt) d;</sql>
+    <set_params>N</set_params>
+    <insert_field/>
+    <update_field/>
+    <delete_field/>
+    <read_field/>
+    <attributes/>
+    <GUI><xloc>200</xloc><yloc>80</yloc></GUI>
+  </transform>
+
+  <transform>
+    <name>Build dim_customer</name>
+    <type>ExecSql</type>
+    <distribute>Y</distribute><copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <connection>DuckDB_Lab1</connection>
+    <execute_each_row>N</execute_each_row>
+    <single_statement>N</single_statement>
+    <replace_variables>N</replace_variables>
+    <quoteString>N</quoteString>
+    <sql>TRUNCATE warehouse.dim_customer;
+INSERT INTO warehouse.dim_customer SELECT ROW_NUMBER() OVER (ORDER BY customer_id),customer_id,customer_name,COALESCE(email,'unknown@unknown.com'),city,country,signup_date,segment,CURRENT_TIMESTAMP FROM staging.customers;</sql>
+    <set_params>N</set_params>
+    <insert_field/><update_field/><delete_field/><read_field/>
+    <attributes/>
+    <GUI><xloc>360</xloc><yloc>80</yloc></GUI>
+  </transform>
+
+  <transform>
+    <name>Build dim_product</name>
+    <type>ExecSql</type>
+    <distribute>Y</distribute><copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <connection>DuckDB_Lab1</connection>
+    <execute_each_row>N</execute_each_row>
+    <single_statement>N</single_statement>
+    <replace_variables>N</replace_variables>
+    <quoteString>N</quoteString>
+    <sql>TRUNCATE warehouse.dim_product;
+INSERT INTO warehouse.dim_product SELECT ROW_NUMBER() OVER (ORDER BY product_id),product_id,product_name,category_id,category_name,department,unit_price,cost_price,active_flag,CURRENT_TIMESTAMP FROM staging.products;</sql>
+    <set_params>N</set_params>
+    <insert_field/><update_field/><delete_field/><read_field/>
+    <attributes/>
+    <GUI><xloc>520</xloc><yloc>80</yloc></GUI>
+  </transform>
+
+  <transform>
+    <name>Build dim_channel</name>
+    <type>ExecSql</type>
+    <distribute>Y</distribute><copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <connection>DuckDB_Lab1</connection>
+    <execute_each_row>N</execute_each_row>
+    <single_statement>N</single_statement>
+    <replace_variables>N</replace_variables>
+    <quoteString>N</quoteString>
+    <sql>TRUNCATE warehouse.dim_channel;
+INSERT INTO warehouse.dim_channel SELECT ROW_NUMBER() OVER (ORDER BY channel),channel,CASE channel WHEN 'Online' THEN 'Digital' WHEN 'Store' THEN 'Physical' WHEN 'Partner' THEN 'Indirect' ELSE 'Unknown' END FROM (SELECT DISTINCT channel FROM staging.orders) t;</sql>
+    <set_params>N</set_params>
+    <insert_field/><update_field/><delete_field/><read_field/>
+    <attributes/>
+    <GUI><xloc>680</xloc><yloc>80</yloc></GUI>
+  </transform>
+
+  <transform>
+    <name>Build dim_geo</name>
+    <type>ExecSql</type>
+    <distribute>Y</distribute><copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <connection>DuckDB_Lab1</connection>
+    <execute_each_row>N</execute_each_row>
+    <single_statement>N</single_statement>
+    <replace_variables>N</replace_variables>
+    <quoteString>N</quoteString>
+    <sql>TRUNCATE warehouse.dim_geo;
+INSERT INTO warehouse.dim_geo SELECT ROW_NUMBER() OVER (ORDER BY city),city,country FROM (SELECT DISTINCT city,country FROM staging.customers UNION SELECT DISTINCT city,'MA' FROM staging.orders WHERE city IS NOT NULL) t WHERE city IS NOT NULL AND city&lt;&gt;'Unknown';</sql>
+    <set_params>N</set_params>
+    <insert_field/><update_field/><delete_field/><read_field/>
+    <attributes/>
+    <GUI><xloc>840</xloc><yloc>80</yloc></GUI>
+  </transform>
+
+  <transform_error_handling/>
+  <attributes/>
+</pipeline>
