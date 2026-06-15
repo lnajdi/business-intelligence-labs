@@ -13,6 +13,14 @@ La direction souhaite un premier diagnostic :
 
 ## Étape 1 — Ingestion avec Apache Hop
 
+> **Nouveau sur Apache Hop ?** Lire `docs/apache_hop_concepts.md` (projet, pipeline
+> vs workflow, transform, exécution Run, connexion DuckDB) avant de commencer.
+
+On construit un **pipeline visuel** plutôt que d'écrire du SQL à la main : chaque
+étape (lecture CSV, contrôle, écriture) est explicite et rejouable. La couche
+`staging.*` est une **copie typée** des sources (conversion de types, alignement des
+colonnes), sans nettoyage métier — celui-ci viendra en Partie B.
+
 > **Deux chemins disponibles**
 > - **Chemin officiel (Hop GUI) :** créer et exécuter le pipeline Apache Hop comme décrit ci-dessous.
 > - **Alternative CLI (si Hop indisponible) :** exécuter directement `duckdb duckdb/lab1.duckdb ".read sql/01_load_staging_tables.sql"` depuis la racine du lab. Les étapes 2 à 4 sont identiques dans les deux cas.
@@ -36,7 +44,8 @@ staging.stock_movements
 
 Les fichiers `orders_april.csv`, `order_items_april.csv`, `payments_april.csv` et `sales_budget.csv` sont réservés à la Partie B. Ils ne doivent pas être chargés dans les tables `staging.*` principales de la Partie A.
 
-Voir `hop/README_pipeline_apache_hop.md`.
+Voir `hop/README_pipeline_apache_hop.md` (guide pas à pas, premier flux `customers`)
+et `docs/apache_hop_concepts.md` (concepts de l'outil).
 
 ## Étape 2 — Exploration dans DuckDB
 

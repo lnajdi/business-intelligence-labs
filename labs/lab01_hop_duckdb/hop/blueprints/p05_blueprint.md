@@ -1,5 +1,7 @@
 # Blueprint - p05_load_budget
 
+> Concepts Hop (transform, Database Lookup, Run) : `../../docs/apache_hop_concepts.md`.
+
 ## Objectif
 
 Charger les donnees de budget dans `warehouse.fact_budget`. Le budget est une
@@ -56,6 +58,18 @@ SELECT COUNT(*) FROM warehouse.fact_budget;
 SELECT COUNT(*) FROM warehouse.fact_budget WHERE channel_key IS NULL;
 -- Attendu : 0 (tous les canaux du budget existent dans dim_channel)
 ```
+
+## Reglages cles par transform (dialogue GUI)
+
+| Transform | Reglages a verifier dans le dialogue |
+|-----------|--------------------------------------|
+| Database Lookup (channel_key) | Table `warehouse.dim_channel` ; cle de jointure `channel` ; champ retourne `channel_key` ; valeur non trouvee -> NULL (a detecter en verif) |
+| Table Output | Connection `DuckDB_Lab1` ; schema `warehouse` ; table `fact_budget` ; Truncate `Y` |
+
+## Pieges courants
+
+- Lancer p05 avant p01 (staging.budget absente) ou avant p02 (dim_channel absente) -> lookups vides.
+- Charger `sales_budget.csv` directement dans le fait sans passer par `staging.budget`.
 
 ## Notes importantes
 

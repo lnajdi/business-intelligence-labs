@@ -4,6 +4,9 @@ Cette partie prolonge la Partie A. Elle suppose que les sources principales ont 
 
 ## Pré-requis Hop
 
+> **Nouveau sur Hop ?** Voir `docs/apache_hop_concepts.md` pour les concepts de
+> l'outil (projet, pipeline `.hpl` vs workflow `.hwf`, transform, Run, connexion).
+
 1. Ouvrir Apache Hop → **File → New Project**
 2. **Project Home** = chemin absolu du dossier `labs/lab01_hop_duckdb`
 3. La connexion `DuckDB_Lab1` est déjà définie dans `hop/metadata/rdbms/DuckDB_Lab1.json`
@@ -178,6 +181,10 @@ Construire visuellement les pipelines Hop :
 
 Ces pipelines sont orchestrés par les workflows `hop/workflows/wf_initial_load.hwf` (chargement complet) et `hop/workflows/wf_incremental_load.hwf` (chargement incrémental), exécutés en Parties B-3 et B-4.
 
+> **Pipeline vs workflow :** un *pipeline* (`.hpl`) transforme un flux de données ;
+> un *workflow* (`.hwf`) orchestre l'ordre d'exécution des pipelines. Détails dans
+> `docs/apache_hop_concepts.md`.
+
 `ExecSql` est autorisé uniquement pour le plumbing : création de schéma/table, `TRUNCATE`, initialisation ou mise à jour de `control.*`. La logique de transformation doit être exprimée avec des transforms Hop tels que `CSV Input`, `Select Values`, `Filter Rows`, `Value Mapper`, `Calculator`, `Database Lookup`, `Merge Join`, `Unique Rows`, `Add Sequence`, `Table Output`.
 
 ## À produire pendant la séance (non rendu)
@@ -192,6 +199,7 @@ Ces pipelines sont orchestrés par les workflows `hop/workflows/wf_initial_load.
 
 | Fichier | Description |
 |---------|-------------|
+| `docs/apache_hop_concepts.md` | Concepts de l'outil Hop (projet, pipeline/workflow, transform, Run) |
 | `sql/50_initial_full_load.sql` | Oracle CLI de chargement complet |
 | `docs/star_schema_design.md` | ERD et définitions de grain |
 | `docs/incremental_load_pattern.md` | Pattern watermark et pièges |

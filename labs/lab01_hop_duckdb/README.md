@@ -32,7 +32,7 @@ labs/lab01_hop_duckdb/
   duckdb/                        # base DuckDB locale a creer
   sql/                           # scripts SQL d'exploration, staging, warehouse
   hop/                           # guides et squelettes Apache Hop
-  docs/                          # dictionnaire, architecture, questions métier, schéma en étoile, pattern incrémental
+  docs/                          # concepts Hop, dictionnaire, architecture, questions métier, schéma en étoile, pattern incrémental
   deliverables/                  # templates de travail (à compléter en séance)
 ```
 

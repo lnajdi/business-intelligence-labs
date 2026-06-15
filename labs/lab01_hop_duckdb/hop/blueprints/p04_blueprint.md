@@ -1,5 +1,8 @@
 # Blueprint - p04_incremental_load
 
+> Concepts Hop (pipeline vs workflow, transform, Run) : `../../docs/apache_hop_concepts.md`.
+> Pattern watermark (rationale) : `../../docs/incremental_load_pattern.md`.
+
 ## Objectif
 
 Charger le batch d'avril 2025 dans `staging.*` avec le pattern watermark, puis laisser `p03_build_facts` reconstruire les faits depuis staging et les dimensions.
@@ -54,6 +57,21 @@ SELECT * FROM control.load_watermark ORDER BY table_name;
 SELECT COUNT(*) FROM warehouse.fact_sales;
 -- Attendu apres p03 : 19
 ```
+
+## Reglages cles par transform (dialogue GUI)
+
+| Transform | Reglages a verifier dans le dialogue |
+|-----------|--------------------------------------|
+| CSV Input | Filename `${DATA_DIR}/orders_april.csv` (idem order_items_april / payments_april) ; memes types que le chargement initial |
+| Filter Rows | Condition `order_date > watermark` (resp. `payment_date > watermark`) pour ne garder que le nouveau batch |
+| Database Lookup | Sur `staging.orders` / `staging.order_items` / `staging.payments` par cle naturelle ; sert a ecarter les doublons deja charges |
+| Table Output | Connection `DuckDB_Lab1` ; schema `staging` ; **Truncate `N`** (append du batch, pas de remise a zero) |
+
+## Pieges courants
+
+- Mettre Truncate `Y` sur le Table Output staging : on efface l'historique au lieu d'ajouter le batch.
+- Oublier de mettre a jour `control.load_watermark` : le batch est rejoue au prochain Run.
+- Croire que p04 reconstruit les faits : non, c'est `wf_incremental_load.hwf` qui enchaine p03 ensuite.
 
 ## Note
 
