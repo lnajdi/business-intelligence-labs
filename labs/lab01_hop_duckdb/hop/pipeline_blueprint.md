@@ -1,6 +1,6 @@
 # Blueprint de pipeline Hop — Référence rapide Partie A
 
-> Résumé visuel pour l'ingestion CSV → `raw.*` (Étape 1 de `lab1_consignes.md`).
+> Résumé visuel pour l'ingestion CSV → `raw.*` (Étape 1 de `lab01_part_a_consignes.md`).
 > Pour le guide détaillé étape par étape, voir `hop/blueprints/p01_blueprint.md`.
 
 ## Version simple

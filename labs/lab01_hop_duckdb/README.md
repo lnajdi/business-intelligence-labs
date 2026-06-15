@@ -2,7 +2,7 @@
 
 **Contexte :** premier lab du cours BI, à réaliser après les séances 1 et 2.  
 **Outils :** Apache Hop + DuckDB CLI  
-**Durée indicative :** 3h pour la partie A, extension séparée pour la partie B  
+**Durée indicative :** ~3h pour la partie A, ~3h pour la partie B (extension séparée)  
 **dbt :** non utilisé dans ce lab
 
 ## Objectif pédagogique
@@ -11,7 +11,7 @@ Comprendre les données avant de modéliser. Le but de la partie A est de charge
 explorer leur qualité, distinguer données opérationnelles et données analytiques, puis proposer
 une première lecture métier.
 
-La partie B (`lab1_part_b_consignes.md`) prolonge le lab avec une couche staging, un schéma en
+La partie B (`lab01_part_b_consignes.md`) prolonge le lab avec une couche staging, un schéma en
 étoile, un chargement incrémental et une comparaison budget vs réalisé. Elle doit être traitée
 comme une extension séparée, pas comme une étape cachée de la partie A.
 
@@ -21,8 +21,8 @@ comme une extension séparée, pas comme une étape cachée de la partie A.
 labs/lab01_hop_duckdb/
   README.md
   prerequisites.md
-  lab1_consignes.md              # partie A : ingestion + exploration
-  lab1_part_b_consignes.md       # partie B : warehouse + incremental
+  lab01_part_a_consignes.md      # partie A : ingestion + exploration
+  lab01_part_b_consignes.md      # partie B : warehouse + incremental
   data/
     raw/                         # CSV sources
     processed/                   # exports/rejets Hop optionnels
@@ -43,26 +43,26 @@ Le dossier `data/raw/` contient trois familles de fichiers :
 
 ## Démarrage rapide — partie A
 
-**Chemin officiel (ingestion Hop) :** Suivre `lab1_consignes.md` → Étape 1, puis revenir ici pour les étapes 2 à 4.
+**Chemin officiel (ingestion Hop) :** Suivre `lab01_part_a_consignes.md` → Étape 1, puis revenir ici pour les étapes 2 à 4.
 
 **Alternative / vérification CLI (sans Hop) :**
 Si Apache Hop n'est pas disponible, les tables `raw.*` peuvent être créées directement avec la CLI DuckDB :
 
 ```bash
-# Depuis la racine du dossier lab
+# Important : se placer DANS le dossier du lab (les scripts SQL utilisent des chemins relatifs comme data/raw/...)
 cd labs/lab01_hop_duckdb
 duckdb duckdb/lab1.duckdb ".read sql/01_load_raw_tables.sql"
 ```
 
 Ces commandes CLI servent aussi à vérifier que le pipeline Hop a produit les bons résultats.
 
-**Exploration DuckDB (Étapes 2-4 de lab1_consignes.md) :**
+**Exploration DuckDB (Étapes 2-4 de lab01_part_a_consignes.md) :**
 
 ```bash
 duckdb duckdb/lab1.duckdb
-.read sql/02_profile_tables.sql
-.read sql/03_quality_checks.sql
-.read sql/04_kpi_exploration.sql
+.read sql/02_profile_tables.sql      # obligatoire
+.read sql/03_quality_checks.sql      # obligatoire
+.read sql/04_kpi_exploration.sql     # optionnel (si le temps le permet)
 ```
 
 ## Démarrage rapide — partie B

@@ -79,6 +79,11 @@ Voir `docs/star_schema_design.md` pour l'ERD complet et les définitions de grai
 
 ### Partie B-3 — Chargement initial (20 min)
 
+> **Ordre d'exécution :** lancer les scripts dans l'ordre `50` → `51` → `52`, une seule fois chacun.
+> Ne **pas** relancer `50_initial_full_load.sql` après `51` : il réinitialise le warehouse et le watermark
+> (`control.load_watermark`), ce qui fausse le test incrémental. Si vous devez repartir de zéro,
+> relancez `50`, puis `51`, puis `52` dans cet ordre.
+
 Exécuter le script de chargement complet.
 
 ```bash

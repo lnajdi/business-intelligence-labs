@@ -1,4 +1,4 @@
-# Consignes détaillées — Lab 1
+# Lab 1 — Partie A : Ingestion + Exploration (consignes détaillées)
 
 ## Scénario métier
 
@@ -42,12 +42,15 @@ Voir `hop/README_pipeline_apache_hop.md`.
 
 Avant de lancer les scripts, parcourez les fichiers `data/raw/` et identifiez les entités métier et leurs relations.
 
-Exécuter les scripts SQL :
+Ouvrir la base DuckDB en mode interactif (depuis le dossier `labs/lab01_hop_duckdb`), puis exécuter les scripts avec `.read` :
 
-```text
-sql/02_profile_tables.sql
-sql/03_quality_checks.sql
+```bash
+duckdb duckdb/lab1.duckdb
+.read sql/02_profile_tables.sql
+.read sql/03_quality_checks.sql
 ```
+
+> Pour quitter la CLI DuckDB : `.quit`
 
 **Résultats obligatoires :**
 

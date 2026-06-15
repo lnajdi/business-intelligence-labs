@@ -1,6 +1,8 @@
 # Guide d'installation
 
-Ce guide prépare votre machine pour les labs BI.
+Ce guide prépare votre machine pour les labs BI. Il couvre uniquement la configuration
+**commune à tous les labs**. Chaque lab installe ensuite les outils qui lui sont propres
+(DuckDB, Apache Hop, dbt, ClickHouse…) via son fichier `prerequisites.md`.
 
 ## 1. Installer Git
 
@@ -31,78 +33,23 @@ Avant chaque séance de lab, mettre à jour votre copie locale :
 git pull
 ```
 
-## 3. Installer DuckDB CLI
-
-Vérifier DuckDB :
-
-```bash
-duckdb --version
-```
-
-Si la commande est absente ou ne fonctionne pas, installer DuckDB CLI depuis :
-
-```text
-https://duckdb.org/docs/installation/
-```
-
-Les labs utilisent des commandes de la CLI DuckDB telles que `.read` : le package Python seul
-ne suffit pas pour le workflow officiel.
-
-## 4. Installer Apache Hop
-
-Installer Apache Hop Desktop :
-
-```text
-https://hop.apache.org/download/
-```
-
-Apache Hop 2.x récent requiert **Java 17 minimum** (**Java 21 recommandé** pour les dernières
-versions ; Hop 2.10+ ne fonctionne plus avec Java 11). Vérifier votre version Java :
-
-```bash
-java -version
-```
-
-Après installation, vérifier que vous pouvez :
-
-- ouvrir Hop GUI ;
-- créer ou ouvrir un projet ;
-- lire un fichier CSV.
-
-Pour les connexions DuckDB dans Hop, télécharger le driver DuckDB JDBC depuis :
-
-```text
-https://duckdb.org/docs/stable/clients/java
-```
-
-Copier `duckdb-jdbc-*.jar` dans le dossier `lib/` utilisé par votre installation ou votre
-projet Hop, puis redémarrer Hop.
-
-## 5. Installer un éditeur
+## 3. Installer un éditeur
 
 Utiliser VS Code, IntelliJ, Cursor, Sublime Text ou un autre éditeur de texte.
 
-## 6. Tester l'installation du Lab 1
+## 4. Outils spécifiques à chaque lab
 
-Depuis la racine du dépôt :
+Les labs sont publiés progressivement et reposent sur des outils différents. Les logiciels à
+installer, leur vérification et un test d'installation sont décrits dans le `prerequisites.md`
+du lab concerné, par exemple :
 
-```bash
-cd labs/lab01_hop_duckdb
-duckdb duckdb/lab1.duckdb ".read sql/01_load_raw_tables.sql"
-duckdb duckdb/lab1.duckdb
-```
+- Lab 1 → `labs/lab01_hop_duckdb/prerequisites.md` (DuckDB CLI, Apache Hop, driver JDBC).
 
-Dans DuckDB :
-
-```sql
-.tables raw.*
-.quit
-```
-
-Si vous voyez les tables `raw`, la partie DuckDB de l'installation est prête.
+Avant chaque séance, ouvrir le `prerequisites.md` du lab du jour et installer les outils
+indiqués.
 
 ## Notes
 
-- Ne pas committer `duckdb/lab1.duckdb` : il est généré localement.
-- Le lab se fait en séance ; aucun rendu n'est à committer dans le dépôt.
-- Python est optionnel pour le Lab 1 et n'est pas requis pour le workflow officiel.
+- Les labs se font en séance ; aucun rendu n'est à committer dans le dépôt.
+- Ne pas committer les bases générées localement (par ex. `*.duckdb`), captures d'écran ou
+  travaux personnels.

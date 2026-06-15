@@ -11,25 +11,16 @@
 
 | Logiciel | Rôle | Lien de téléchargement |
 |---|---|---|
-| DuckDB CLI | Moteur d'analyse local (chemin officiel du lab) | https://duckdb.org/docs/installation/ |
-| Apache Hop | Ingestion visuelle (pipeline GUI) | https://hop.apache.org/download/ |
+| Apache Hop | Ingestion visuelle (chemin officiel d'ingestion, pipeline GUI) | https://hop.apache.org/download/ |
+| DuckDB CLI | Moteur d'exploration local (requêtes `.read`) | https://duckdb.org/docs/installation/ |
 | Driver DuckDB JDBC | Connexion DuckDB depuis Hop (Partie B) | https://duckdb.org/docs/stable/clients/java |
 | Git | Récupérer et mettre à jour le matériel | https://git-scm.com/downloads |
 | Éditeur de texte | VS Code, IntelliJ, Cursor, Sublime Text… | https://code.visualstudio.com/ |
 
-### 1. DuckDB CLI
+### 1. Apache Hop
 
-Le chemin officiel du lab utilise la CLI DuckDB :
-
-```bash
-duckdb --version
-```
-
-Si cette commande ne fonctionne pas, installer DuckDB CLI avant le lab depuis
-https://duckdb.org/docs/installation/. Les commandes `.read` utilisées dans les consignes
-sont des commandes de la CLI DuckDB (le package Python seul ne suffit pas).
-
-### 2. Apache Hop
+Apache Hop est le **chemin officiel d'ingestion** du lab : le pipeline GUI lit les CSV et charge
+les tables `raw.*` dans DuckDB.
 
 Installer Apache Hop Desktop (**version 2.x récente recommandée**, requiert **Java 17 minimum**,
 **Java 21 recommandé** pour les dernières versions) depuis https://hop.apache.org/download/
@@ -44,6 +35,20 @@ Puis vérifier :
 Pour la Partie B avec Hop, télécharger le driver `duckdb-jdbc-*.jar` depuis
 https://duckdb.org/docs/stable/clients/java, le copier dans le dossier `lib/` du projet Hop,
 puis tester la connexion `DuckDB_Lab1`.
+
+### 2. DuckDB CLI
+
+DuckDB est le **moteur d'exploration** du lab : une fois les tables `raw.*` chargées par Hop,
+les analyses se font avec la CLI DuckDB.
+
+```bash
+duckdb --version
+```
+
+Si cette commande ne fonctionne pas, installer DuckDB CLI avant le lab depuis
+https://duckdb.org/docs/installation/. Les commandes `.read` utilisées dans les consignes
+sont des commandes de la CLI DuckDB. La CLI sert aussi de chemin de secours pour charger
+`raw.*` si Apache Hop est indisponible (voir le README).
 
 ### 3. Git
 
