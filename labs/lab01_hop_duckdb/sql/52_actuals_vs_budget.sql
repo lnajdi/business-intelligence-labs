@@ -17,10 +17,10 @@ JOIN warehouse.dim_date         dd  ON fs.date_key     = dd.date_key
 JOIN warehouse.dim_product      dp  ON fs.product_key  = dp.product_key
 JOIN warehouse.dim_channel      dch ON fs.channel_key  = dch.channel_key
 LEFT JOIN warehouse.fact_budget fb
-    ON  dd.year          = fb.year
-    AND dd.month_num     = fb.month_num
-    AND dp.category_id   = fb.category_id
-    AND dch.channel_name = fb.channel_name
+    ON  dd.year         = fb.year
+    AND dd.month_num    = fb.month_num
+    AND dp.category_id  = fb.category_id
+    AND dch.channel_key = fb.channel_key
 WHERE fs.order_status = 'Completed'
 GROUP BY dd.year, dd.month_num, dd.month_name, dp.category_name, dch.channel_name
 ORDER BY dd.year, dd.month_num, dp.category_name;

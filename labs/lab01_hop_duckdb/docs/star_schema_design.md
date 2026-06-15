@@ -47,19 +47,14 @@ Le grain de `fact_sales` est intentionnellement fin (ligne de commande) pour per
 ### dim_product
 
 - **product_key :** clé de substitution par `product_id` source
-- Enrichi avec `category_name` et `department` depuis `raw.categories`
+- Enrichi avec `category_name` et `department` depuis `staging.categories`
 - `cost_price` utilisé dans `fact_sales` pour le calcul de marge
 
 ### dim_channel
 
 - 3 valeurs attendues : Online (Digital), Store (Physical), Partner (Indirect)
 - Dérivé des valeurs distinctes de `staging.orders.channel`
-
-### dim_geo
-
-- Consolide les villes de `staging.customers` et `staging.orders`
-- Exclut les valeurs NULL et 'Unknown' (résidus de normalisation)
-- `country` = valeur staging pour customers, 'MA' pour les villes provenant des commandes
+- `channel_name` porte une contrainte `UNIQUE` (les faits joignent sur ce libellé)
 
 ---
 
@@ -90,10 +85,9 @@ Toutes les mesures sont additives sur toutes les dimensions — elles peuvent ê
 
 ## Décisions de conception
 
-1. **fact_budget séparé de fact_sales** — grains incompatibles (budget au niveau catégorie+mois, ventes au niveau ligne). Une fact table consolidée nécessiterait des agrégations préalables.
+1. **fact_budget séparé de fact_sales** — grains incompatibles (budget au niveau catégorie+mois, ventes au niveau ligne). Une fact table consolidée nécessiterait des agrégations préalables. Le budget transite par `staging.budget` comme toutes les autres sources, puis est chargé dans `warehouse.fact_budget` (clé canal de substitution `channel_key`).
 
-2. **dim_geo non reliée aux facts** — incluse comme dimension exploratoire pour les étudiants. Une version complète du modèle ajouterait `geo_key` dans `fact_sales`.
+2. **Pas de dim_supplier ni dim_warehouse** — hors périmètre de ce lab. `fact_stock.warehouse` est stocké comme attribut dégénéré.
 
-3. **Pas de dim_supplier ni dim_warehouse** — hors périmètre de ce lab. `fact_stock.warehouse` est stocké comme attribut dégénéré.
+3. **order_status dans fact_sales** — attribut dégénéré (sans dimension correspondante) pour simplifier le filtrage par statut sans jointure supplémentaire.
 
-4. **order_status dans fact_sales** — attribut dégénéré (sans dimension correspondante) pour simplifier le filtrage par statut sans jointure supplémentaire.

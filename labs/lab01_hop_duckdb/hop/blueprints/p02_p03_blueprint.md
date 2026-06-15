@@ -1,113 +1,106 @@
-# Blueprint — p02_build_dims & p03_build_facts
+# Blueprint - p02_build_dims & p03_build_facts
 
 ## Objectif
 
-Construire les dimensions et les tables de faits du data warehouse en utilisant des transforms `ExecSql` chaînés dans Apache Hop.
+Construire les dimensions et les tables de faits avec des transforms Hop natifs. Les scripts SQL equivalents restent un oracle de validation, mais ils ne sont pas le workflow principal.
 
----
+`ExecSql` est limite au plumbing : `TRUNCATE`, creation de tables techniques, mise a jour de `control.*`. Les jointures, filtres, deduplications, lookups, cles de substitution et calculs de mesures doivent etre visibles dans le canvas Hop.
 
-## Le transform ExecSql
+## p02 - Dimensions
 
-`ExecSql` exécute du SQL arbitraire sur une connexion de base de données. Il ne lit ni n'émet de lignes — il exécute le SQL et passe le flux en aval.
+### dim_date
 
-| Paramètre          | Valeur à utiliser |
-|--------------------|-------------------|
-| Connection         | DuckDB_Lab1       |
-| Execute each row   | N                 |
-| Single statement   | N (permet plusieurs instructions séparées par `;`) |
-| Replace variables  | N                 |
+Pattern conseille :
 
-**SQL multi-instructions :** Séparer les instructions par un `;` et un retour à la ligne dans le champ SQL. Hop les exécute séquentiellement.
-
----
-
-## p02 — Chaîne de construction des dimensions
-
-```
-[Start/Dummy] → [Build dim_date] → [Build dim_customer] → [Build dim_product] → [Build dim_channel] → [Build dim_geo]
+```text
+Generate Rows / Generate Sequence
+  -> Calculator (date_key, year, quarter, month, day, weekday, is_weekend, season)
+  -> Table Output warehouse.dim_date
 ```
 
-Chaque transform fait un `TRUNCATE` de la table cible puis un `INSERT INTO ... SELECT ...`.
+Pour ce lab, un `ExecSql` de generation de calendrier est acceptable si Hop ne fournit pas facilement la generation de dates. Le reste des dimensions doit rester Hop-native.
 
-### Lignes attendues par dimension
+### dim_customer
 
-| Dimension      | Script SQL            | Lignes attendues |
-|----------------|-----------------------|------------------|
-| dim_date       | sql/21_dim_date.sql   | 1096             |
-| dim_customer   | sql/22_dim_customer.sql | = nb clients staging |
-| dim_product    | sql/23_dim_product.sql  | = nb produits staging |
-| dim_channel    | sql/24_dim_channel.sql  | 3 (Online, Store, Partner) |
-| dim_geo        | sql/25_dim_geo.sql      | nb villes distinctes |
+```text
+Table Input staging.customers
+  -> Filter Rows (customer_id and customer_name not null)
+  -> Sort Rows (customer_id, signup_date)
+  -> Unique Rows (deduplicate customer_id)
+  -> Value Mapper / Select Values (city normalization, email default)
+  -> Add Sequence (customer_key)
+  -> Table Output warehouse.dim_customer
+```
 
-**Vérification dim_date :**
+### dim_product
+
+```text
+Table Input staging.products
+  -> Database Lookup staging.categories on category_id
+  -> Filter Rows (product_id not null)
+  -> Add Sequence (product_key)
+  -> Table Output warehouse.dim_product
+```
+
+### dim_channel
+
+```text
+Table Input staging.orders
+  -> Unique Rows (channel)
+  -> Value Mapper (channel_type)
+  -> Add Sequence (channel_key)
+  -> Table Output warehouse.dim_channel
+```
+
+## p03 - Faits
+
+### fact_sales
+
+```text
+Table Input staging.order_items
+  -> Database Lookup staging.orders on order_id
+  -> Database Lookup warehouse.dim_date on order_date
+  -> Database Lookup warehouse.dim_customer on customer_id
+  -> Database Lookup warehouse.dim_product on product_id
+  -> Database Lookup warehouse.dim_channel on channel
+  -> Filter Rows (valid keys, valid status, quantity > 0, unit_price >= 0)
+  -> Calculator (gross_amount, net_amount, cost_amount, margin_amount)
+  -> Table Output warehouse.fact_sales
+```
+
+Grain : 1 ligne par `order_item_id`.  
+Cle : `sales_key` est une cle de substitution generee dans le warehouse (Add Sequence). `order_item_id` est conserve comme `order_item_id_src` pour la tracabilite.
+
+### fact_stock
+
+```text
+Table Input staging.stock_movements
+  -> Database Lookup warehouse.dim_date on movement_date
+  -> Database Lookup warehouse.dim_product on product_id
+  -> Filter Rows (movement_type IN, quantity > 0)
+  -> Calculator (qty_in, qty_out)
+  -> Table Output warehouse.fact_stock
+```
+
+## Verifications
+
 ```sql
 SELECT COUNT(*) FROM warehouse.dim_date;
 -- Attendu : 1096
 
-SELECT is_weekend FROM warehouse.dim_date WHERE date_actual = '2025-01-05';
--- Attendu : true (dimanche)
-```
-
----
-
-## p03 — Chaîne de construction des faits
-
-```
-[Start/Dummy] → [Build fact_sales] → [Build fact_stock]
-```
-
-### Diagramme de jointure fact_sales
-
-```
-staging.order_items (oi)
-    JOIN staging.orders (o)           ON oi.order_id = o.order_id
-    JOIN warehouse.dim_date (dd)      ON o.order_date = dd.date_actual
-    JOIN warehouse.dim_customer (dc)  ON o.customer_id = dc.customer_id_src
-    JOIN warehouse.dim_product (dp)   ON oi.product_id = dp.product_id_src
-    JOIN warehouse.dim_channel (dch)  ON o.channel = dch.channel_name
-→ warehouse.fact_sales
-```
-
-**Grain :** 1 ligne par `order_item_id`  
-**Clé :** `order_item_id` = `sales_key`
-
-### Mesures calculées dans fact_sales
-
-| Mesure          | Formule                                          |
-|-----------------|--------------------------------------------------|
-| gross_amount    | quantity × sale_unit_price                       |
-| net_amount      | quantity × sale_unit_price − discount_amount     |
-| cost_amount     | quantity × cost_unit_price (dp.cost_price)       |
-| margin_amount   | net_amount − cost_amount                         |
-
-### Vérification fact_sales
-
-```sql
--- Aucune clé FK nulle
 SELECT COUNT(*) FROM warehouse.fact_sales
 WHERE date_key IS NULL OR customer_key IS NULL OR product_key IS NULL;
 -- Attendu : 0
 
--- Répartition par statut
 SELECT order_status, COUNT(*), ROUND(SUM(net_amount),2)
 FROM warehouse.fact_sales
-GROUP BY order_status ORDER BY 3 DESC;
+GROUP BY order_status
+ORDER BY 3 DESC;
 ```
 
----
+## Notes Hop GUI
 
-## Nom de connexion à utiliser
-
-Tous les transforms ExecSql référencent : **`DuckDB_Lab1`**
-
-Cette connexion est définie dans `hop/metadata/rdbms/DuckDB_Lab1.json` et pointe vers `${HOP_PROJECT_HOME}/duckdb/lab1.duckdb`.
-
----
-
-## Notes pour l'utilisation en Hop GUI
-
-1. Ouvrir le fichier `.hpl` dans Hop GUI
-2. Cliquer droit sur chaque transform ExecSql → **Edit** pour voir/modifier le SQL
-3. La connexion `DuckDB_Lab1` doit être visible dans **File → Connections**
-4. Exécuter avec **Run → Run pipeline** (local)
-5. Vérifier les métriques dans l'onglet **Preview** après exécution
+1. Truncatez les tables cibles avant de recharger une dimension ou un fait.
+2. Preferez `Database Lookup` ou `Stream Lookup` aux jointures SQL.
+3. Utilisez `Calculator` pour les mesures, pas une expression SQL cachee.
+4. Verifiez les compteurs de lignes entre chaque transform pendant la construction.

@@ -10,7 +10,7 @@
 
 | KPI | Définition | Grain | Source | Filtres | Limites | Décision associée |
 |---|---|---|---|---|---|---|
-| *Exemple — CA net* | *SUM(unit_price × quantity − discount_amount)* | *Ligne de commande* | *raw.order_items, raw.orders* | *order_status = 'Completed'* | *Exclut les retours partiels non enregistrés* | *Quel canal génère le plus de revenu ce mois ?* |
+| *Exemple — CA net* | *SUM(unit_price × quantity − discount_amount)* | *Ligne de commande* | *staging.order_items, staging.orders* | *order_status = 'Completed'* | *Exclut les retours partiels non enregistrés* | *Quel canal génère le plus de revenu ce mois ?* |
 | Chiffre d'affaires net |  |  |  |  |  |  |
 | Nombre de commandes |  |  |  |  |  |  |
 | Panier moyen |  |  |  |  |  |  |

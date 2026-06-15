@@ -4,8 +4,12 @@
 TRUNCATE warehouse.fact_sales;
 
 INSERT INTO warehouse.fact_sales
+    (sales_key, order_item_id_src, date_key, customer_key, product_key, channel_key,
+     order_id, quantity, sale_unit_price, cost_unit_price, discount_amount,
+     gross_amount, net_amount, cost_amount, margin_amount, order_status, loaded_at)
 SELECT
-    oi.order_item_id                                                       AS sales_key,
+    ROW_NUMBER() OVER (ORDER BY oi.order_item_id)                          AS sales_key,
+    oi.order_item_id                                                       AS order_item_id_src,
     dd.date_key,
     dc.customer_key,
     dp.product_key,
@@ -27,4 +31,9 @@ JOIN staging.orders              o   ON oi.order_id   = o.order_id
 JOIN warehouse.dim_date          dd  ON o.order_date  = dd.date_actual
 JOIN warehouse.dim_customer      dc  ON o.customer_id = dc.customer_id_src
 JOIN warehouse.dim_product       dp  ON oi.product_id = dp.product_id_src
-JOIN warehouse.dim_channel       dch ON o.channel     = dch.channel_name;
+JOIN warehouse.dim_channel       dch ON o.channel     = dch.channel_name
+WHERE o.order_id IS NOT NULL
+  AND o.order_date IS NOT NULL
+  AND o.order_status IN ('Completed','Returned','Cancelled','Shipped')
+  AND oi.quantity > 0
+  AND oi.unit_price >= 0;

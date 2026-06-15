@@ -11,15 +11,18 @@ Comprendre les données avant de modéliser. Le but de la partie A est de charge
 explorer leur qualité, distinguer données opérationnelles et données analytiques, puis proposer
 une première lecture métier.
 
-La partie B (`lab01_part_b_consignes.md`) prolonge le lab avec une couche staging, un schéma en
-étoile, un chargement incrémental et une comparaison budget vs réalisé. Elle doit être traitée
-comme une extension séparée, pas comme une étape cachée de la partie A.
+La partie A construit déjà la couche `staging.*` (ingestion typée). La partie B
+(`lab01_part_b_consignes.md`) prolonge le lab en bâtissant sur ce staging un schéma en
+étoile (`warehouse.*`), un chargement incrémental et une comparaison budget vs réalisé. Elle
+doit être traitée comme une extension séparée, pas comme une étape cachée de la partie A.
 
 ## Structure du dossier
 
 ```text
 labs/lab01_hop_duckdb/
   README.md
+  CONTEXT.md                     # architecture canonique ETL + glossaire
+  announcement.md                # annonce du lab (prérequis à installer)
   prerequisites.md
   lab01_part_a_consignes.md      # partie A : ingestion + exploration
   lab01_part_b_consignes.md      # partie B : warehouse + incremental
@@ -29,7 +32,7 @@ labs/lab01_hop_duckdb/
   duckdb/                        # base DuckDB locale a creer
   sql/                           # scripts SQL d'exploration, staging, warehouse
   hop/                           # guides et squelettes Apache Hop
-  docs/                          # dictionnaire, architecture, questions metier
+  docs/                          # dictionnaire, architecture, questions métier, schéma en étoile, pattern incrémental
   deliverables/                  # templates de travail (à compléter en séance)
 ```
 
@@ -46,12 +49,12 @@ Le dossier `data/raw/` contient trois familles de fichiers :
 **Chemin officiel (ingestion Hop) :** Suivre `lab01_part_a_consignes.md` → Étape 1, puis revenir ici pour les étapes 2 à 4.
 
 **Alternative / vérification CLI (sans Hop) :**
-Si Apache Hop n'est pas disponible, les tables `raw.*` peuvent être créées directement avec la CLI DuckDB :
+Si Apache Hop n'est pas disponible, les tables `staging.*` peuvent être créées directement avec la CLI DuckDB :
 
 ```bash
 # Important : se placer DANS le dossier du lab (les scripts SQL utilisent des chemins relatifs comme data/raw/...)
 cd labs/lab01_hop_duckdb
-duckdb duckdb/lab1.duckdb ".read sql/01_load_raw_tables.sql"
+duckdb duckdb/lab1.duckdb ".read sql/01_load_staging_tables.sql"
 ```
 
 Ces commandes CLI servent aussi à vérifier que le pipeline Hop a produit les bons résultats.
@@ -82,3 +85,5 @@ Le lab se fait en séance, il n'y a aucun rendu à remettre. En fin de Partie A,
 3. vos requêtes SQL d'exploration ;
 4. un rapport qualité initial (`deliverables/quality_report_template.md`) ;
 5. une première liste de KPI et questions métier (`deliverables/kpi_list_template.md`).
+
+

@@ -1,15 +1,15 @@
--- Starter SQL étudiant — compléter librement
+﻿-- Starter SQL Ã©tudiant â€” complÃ©ter librement
 
 -- 1. Choisissez une table et affichez 10 lignes.
 SELECT *
-FROM raw.orders
+FROM staging.orders
 LIMIT 10;
 
--- 2. Vérifiez une clé unique.
+-- 2. VÃ©rifiez une clÃ© unique.
 SELECT
   order_id,
   COUNT(*) AS n
-FROM raw.orders
+FROM staging.orders
 GROUP BY order_id
 HAVING COUNT(*) > 1;
 
@@ -18,8 +18,9 @@ HAVING COUNT(*) > 1;
 SELECT
   o.city,
   SUM(oi.quantity * oi.unit_price - oi.discount_amount) AS net_revenue
-FROM raw.orders o
-JOIN raw.order_items oi ON o.order_id = oi.order_id
+FROM staging.orders o
+JOIN staging.order_items oi ON o.order_id = oi.order_id
 WHERE o.order_status = 'Completed'
 GROUP BY o.city
 ORDER BY net_revenue DESC;
+

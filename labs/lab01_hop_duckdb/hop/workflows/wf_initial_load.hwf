@@ -1,8 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <workflow>
   <name>wf_initial_load</name>
   <name_sync_with_filename>Y</name_sync_with_filename>
-  <description>Full initial load: raw CSVs → staging → warehouse dims → warehouse facts → budget. Reference skeleton — validate in Hop GUI.</description>
+  <description>Full initial load: CSV sources to staging to warehouse dims to warehouse facts to budget.</description>
   <parameters/>
 
   <actions>
@@ -26,11 +26,11 @@
     </action>
 
     <action>
-      <name>p01 Raw to Staging</name>
+      <name>p01 CSV to Staging</name>
       <description/>
       <type>PIPELINE</type>
       <attributes/>
-      <filename>hop/pipelines/p01_raw_to_staging.hpl</filename>
+      <filename>hop/pipelines/p01_csv_to_staging.hpl</filename>
       <run_configuration>local</run_configuration>
       <wait_until_finished>Y</wait_until_finished>
       <params_from_previous>N</params_from_previous>
@@ -136,8 +136,8 @@
   </actions>
 
   <hops>
-    <hop><from>Start</from>              <to>p01 Raw to Staging</to>  <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>Y</unconditional></hop>
-    <hop><from>p01 Raw to Staging</from> <to>p02 Build Dimensions</to><enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>Start</from>              <to>p01 CSV to Staging</to>  <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>Y</unconditional></hop>
+    <hop><from>p01 CSV to Staging</from> <to>p02 Build Dimensions</to><enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
     <hop><from>p02 Build Dimensions</from><to>p03 Build Facts</to>    <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
     <hop><from>p03 Build Facts</from>    <to>p05 Load Budget</to>     <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
     <hop><from>p05 Load Budget</from>    <to>SUCCESS</to>             <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
@@ -146,3 +146,6 @@
   <notepads/>
   <attributes/>
 </workflow>
+
+
+

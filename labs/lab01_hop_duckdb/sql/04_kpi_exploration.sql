@@ -1,6 +1,6 @@
--- Premières explorations KPI — Lab 1
+﻿-- PremiÃ¨res explorations KPI â€” Lab 1
 
--- CA net théorique par ligne, hors commandes annulées et retournées.
+-- CA net thÃ©orique par ligne, hors commandes annulÃ©es et retournÃ©es.
 WITH sales_lines AS (
   SELECT
     o.order_id,
@@ -16,10 +16,10 @@ WITH sales_lines AS (
     oi.discount_amount,
     oi.quantity * oi.unit_price AS gross_amount,
     oi.quantity * oi.unit_price - oi.discount_amount AS net_amount
-  FROM raw.orders o
-  JOIN raw.order_items oi ON o.order_id = oi.order_id
-  LEFT JOIN raw.products p ON oi.product_id = p.product_id
-  LEFT JOIN raw.categories c ON p.category_id = c.category_id
+  FROM staging.orders o
+  JOIN staging.order_items oi ON o.order_id = oi.order_id
+  LEFT JOIN staging.products p ON oi.product_id = p.product_id
+  LEFT JOIN staging.categories c ON p.category_id = c.category_id
   WHERE o.order_status = 'Completed'
 )
 SELECT
@@ -35,8 +35,8 @@ WITH sales_lines AS (
     DATE_TRUNC('month', o.order_date)::DATE AS order_month,
     oi.quantity * oi.unit_price - oi.discount_amount AS net_amount,
     o.order_id
-  FROM raw.orders o
-  JOIN raw.order_items oi ON o.order_id = oi.order_id
+  FROM staging.orders o
+  JOIN staging.order_items oi ON o.order_id = oi.order_id
   WHERE o.order_status = 'Completed'
 )
 SELECT
@@ -52,21 +52,21 @@ SELECT
   o.channel,
   COUNT(DISTINCT o.order_id) AS completed_orders,
   SUM(oi.quantity * oi.unit_price - oi.discount_amount) AS net_revenue
-FROM raw.orders o
-JOIN raw.order_items oi ON o.order_id = oi.order_id
+FROM staging.orders o
+JOIN staging.order_items oi ON o.order_id = oi.order_id
 WHERE o.order_status = 'Completed'
 GROUP BY o.channel
 ORDER BY net_revenue DESC;
 
--- Ventes par catégorie
+-- Ventes par catÃ©gorie
 SELECT
   COALESCE(c.category_name, 'UNKNOWN') AS category_name,
   COUNT(DISTINCT o.order_id) AS completed_orders,
   SUM(oi.quantity * oi.unit_price - oi.discount_amount) AS net_revenue
-FROM raw.orders o
-JOIN raw.order_items oi ON o.order_id = oi.order_id
-LEFT JOIN raw.products p ON oi.product_id = p.product_id
-LEFT JOIN raw.categories c ON p.category_id = c.category_id
+FROM staging.orders o
+JOIN staging.order_items oi ON o.order_id = oi.order_id
+LEFT JOIN staging.products p ON oi.product_id = p.product_id
+LEFT JOIN staging.categories c ON p.category_id = c.category_id
 WHERE o.order_status = 'Completed'
 GROUP BY COALESCE(c.category_name, 'UNKNOWN')
 ORDER BY net_revenue DESC;
@@ -75,7 +75,7 @@ ORDER BY net_revenue DESC;
 SELECT
   order_status,
   COUNT(*) AS orders_count
-FROM raw.orders
+FROM staging.orders
 GROUP BY order_status
 ORDER BY orders_count DESC;
 
@@ -85,4 +85,5 @@ SELECT
   SUM(discount_amount) AS total_discount,
   SUM(quantity * unit_price - discount_amount) AS net_amount,
   SUM(discount_amount) / NULLIF(SUM(quantity * unit_price), 0) AS discount_rate
-FROM raw.order_items;
+FROM staging.order_items;
+

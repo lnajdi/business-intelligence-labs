@@ -44,19 +44,14 @@ CREATE OR REPLACE TABLE warehouse.dim_product (
 
 CREATE OR REPLACE TABLE warehouse.dim_channel (
     channel_key  INTEGER PRIMARY KEY,
-    channel_name VARCHAR,
+    channel_name VARCHAR UNIQUE,        -- joined as a text key by the facts
     channel_type VARCHAR
-);
-
-CREATE OR REPLACE TABLE warehouse.dim_geo (
-    geo_key  INTEGER PRIMARY KEY,
-    city     VARCHAR,
-    country  VARCHAR
 );
 
 -- FACTS
 CREATE OR REPLACE TABLE warehouse.fact_sales (
-    sales_key       INTEGER PRIMARY KEY,
+    sales_key         INTEGER PRIMARY KEY,  -- warehouse surrogate
+    order_item_id_src INTEGER,              -- staging natural key (traceability)
     date_key        INTEGER,
     customer_key    INTEGER,
     product_key     INTEGER,
@@ -91,7 +86,6 @@ CREATE OR REPLACE TABLE warehouse.fact_budget (
     category_id   INTEGER,
     category_name VARCHAR,
     channel_key   INTEGER,
-    channel_name  VARCHAR,
     budget_amount DECIMAL(10,2),
     budget_qty    INTEGER,
     loaded_at     TIMESTAMP

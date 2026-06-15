@@ -2,6 +2,8 @@
 -- 1096 rows: 2024-01-01 to 2026-12-31 (2024 is a leap year)
 
 INSERT INTO warehouse.dim_date
+    (date_key, date_actual, year, quarter, month_num, month_name,
+     day_num, day_name, day_of_week, is_weekend, season)
 SELECT
     YEAR(d.dt)*10000 + MONTH(d.dt)*100 + DAY(d.dt)   AS date_key,
     d.dt                                               AS date_actual,

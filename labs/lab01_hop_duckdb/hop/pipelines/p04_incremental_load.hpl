@@ -3,134 +3,23 @@
   <info>
     <name>p04_incremental_load</name>
     <name_sync_with_filename>Y</name_sync_with_filename>
-    <description>Append April 2025 batch to raw and staging using watermark pattern. Reference skeleton — validate in Hop GUI.</description>
+    <description>Skeleton for Hop-native incremental CSV-to-staging loads using watermarks and lookup-based deduplication.</description>
     <pipeline_type>Normal</pipeline_type>
     <capture_transform_performance>N</capture_transform_performance>
   </info>
 
   <order>
-    <hop><from>Start</from>                      <to>Register batch files</to>       <enabled>Y</enabled></hop>
-    <hop><from>Register batch files</from>       <to>Append raw orders</to>          <enabled>Y</enabled></hop>
-    <hop><from>Append raw orders</from>          <to>Append staging orders</to>      <enabled>Y</enabled></hop>
-    <hop><from>Append staging orders</from>      <to>Append staging order_items</to> <enabled>Y</enabled></hop>
-    <hop><from>Append staging order_items</from> <to>Append staging payments</to>    <enabled>Y</enabled></hop>
-    <hop><from>Append staging payments</from>    <to>Update watermarks</to>          <enabled>Y</enabled></hop>
+    <hop><from>Start</from><to>Load April orders with Hop steps</to><enabled>Y</enabled></hop>
+    <hop><from>Load April orders with Hop steps</from><to>Load April order_items with Hop steps</to><enabled>Y</enabled></hop>
+    <hop><from>Load April order_items with Hop steps</from><to>Load April payments with Hop steps</to><enabled>Y</enabled></hop>
+    <hop><from>Load April payments with Hop steps</from><to>Update watermarks</to><enabled>Y</enabled></hop>
   </order>
 
-  <transform>
-    <name>Start</name>
-    <type>Dummy</type>
-    <distribute>Y</distribute><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <attributes/>
-    <GUI><xloc>64</xloc><yloc>80</yloc></GUI>
-  </transform>
-
-  <transform>
-    <name>Register batch files</name>
-    <type>ExecSql</type>
-    <distribute>Y</distribute><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <connection>DuckDB_Lab1</connection>
-    <execute_each_row>N</execute_each_row>
-    <single_statement>N</single_statement>
-    <replace_variables>N</replace_variables>
-    <quoteString>N</quoteString>
-    <sql>CREATE TABLE IF NOT EXISTS raw.orders_batch2 AS SELECT * FROM read_csv_auto('data/raw/orders_april.csv', header=true);
-CREATE TABLE IF NOT EXISTS raw.order_items_batch2 AS SELECT * FROM read_csv_auto('data/raw/order_items_april.csv', header=true);
-CREATE TABLE IF NOT EXISTS raw.payments_batch2 AS SELECT * FROM read_csv_auto('data/raw/payments_april.csv', header=true);</sql>
-    <set_params>N</set_params>
-    <insert_field/><update_field/><delete_field/><read_field/>
-    <attributes/>
-    <GUI><xloc>224</xloc><yloc>80</yloc></GUI>
-  </transform>
-
-  <transform>
-    <name>Append raw orders</name>
-    <type>ExecSql</type>
-    <distribute>Y</distribute><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <connection>DuckDB_Lab1</connection>
-    <execute_each_row>N</execute_each_row>
-    <single_statement>N</single_statement>
-    <replace_variables>N</replace_variables>
-    <quoteString>N</quoteString>
-    <sql>INSERT INTO raw.orders SELECT * FROM raw.orders_batch2 WHERE order_id NOT IN (SELECT order_id FROM raw.orders);
-INSERT INTO raw.order_items SELECT * FROM raw.order_items_batch2 WHERE order_item_id NOT IN (SELECT order_item_id FROM raw.order_items);
-INSERT INTO raw.payments SELECT * FROM raw.payments_batch2 WHERE payment_id NOT IN (SELECT payment_id FROM raw.payments);</sql>
-    <set_params>N</set_params>
-    <insert_field/><update_field/><delete_field/><read_field/>
-    <attributes/>
-    <GUI><xloc>384</xloc><yloc>80</yloc></GUI>
-  </transform>
-
-  <transform>
-    <name>Append staging orders</name>
-    <type>ExecSql</type>
-    <distribute>Y</distribute><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <connection>DuckDB_Lab1</connection>
-    <execute_each_row>N</execute_each_row>
-    <single_statement>N</single_statement>
-    <replace_variables>N</replace_variables>
-    <quoteString>N</quoteString>
-    <sql>INSERT OR IGNORE INTO staging.orders SELECT o.* FROM raw.orders o INNER JOIN staging.customers c ON o.customer_id=c.customer_id WHERE o.order_date>(SELECT COALESCE(MAX(last_load_dt),DATE '2000-01-01') FROM control.load_watermark WHERE table_name='orders') AND o.order_id IS NOT NULL AND o.order_status IN ('Completed','Returned','Cancelled','Shipped');</sql>
-    <set_params>N</set_params>
-    <insert_field/><update_field/><delete_field/><read_field/>
-    <attributes/>
-    <GUI><xloc>544</xloc><yloc>80</yloc></GUI>
-  </transform>
-
-  <transform>
-    <name>Append staging order_items</name>
-    <type>ExecSql</type>
-    <distribute>Y</distribute><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <connection>DuckDB_Lab1</connection>
-    <execute_each_row>N</execute_each_row>
-    <single_statement>N</single_statement>
-    <replace_variables>N</replace_variables>
-    <quoteString>N</quoteString>
-    <sql>INSERT OR IGNORE INTO staging.order_items SELECT oi.* FROM raw.order_items oi INNER JOIN staging.orders o ON oi.order_id=o.order_id INNER JOIN staging.products p ON oi.product_id=p.product_id WHERE oi.quantity>0 AND oi.unit_price>=0 AND oi.order_item_id NOT IN (SELECT order_item_id FROM staging.order_items);</sql>
-    <set_params>N</set_params>
-    <insert_field/><update_field/><delete_field/><read_field/>
-    <attributes/>
-    <GUI><xloc>704</xloc><yloc>80</yloc></GUI>
-  </transform>
-
-  <transform>
-    <name>Append staging payments</name>
-    <type>ExecSql</type>
-    <distribute>Y</distribute><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <connection>DuckDB_Lab1</connection>
-    <execute_each_row>N</execute_each_row>
-    <single_statement>N</single_statement>
-    <replace_variables>N</replace_variables>
-    <quoteString>N</quoteString>
-    <sql>INSERT OR IGNORE INTO staging.payments SELECT pm.* FROM raw.payments pm INNER JOIN staging.orders o ON pm.order_id=o.order_id WHERE pm.amount>0 AND pm.payment_id NOT IN (SELECT payment_id FROM staging.payments);</sql>
-    <set_params>N</set_params>
-    <insert_field/><update_field/><delete_field/><read_field/>
-    <attributes/>
-    <GUI><xloc>864</xloc><yloc>80</yloc></GUI>
-  </transform>
-
-  <transform>
-    <name>Update watermarks</name>
-    <type>ExecSql</type>
-    <distribute>Y</distribute><copies>1</copies>
-    <partitioning><method>none</method><schema_name/></partitioning>
-    <connection>DuckDB_Lab1</connection>
-    <execute_each_row>N</execute_each_row>
-    <single_statement>N</single_statement>
-    <replace_variables>N</replace_variables>
-    <quoteString>N</quoteString>
-    <sql>INSERT OR REPLACE INTO control.load_watermark(table_name,last_load_dt,updated_at) SELECT 'orders',MAX(order_date),CURRENT_TIMESTAMP FROM staging.orders UNION ALL SELECT 'payments',MAX(payment_date),CURRENT_TIMESTAMP FROM staging.payments;</sql>
-    <set_params>N</set_params>
-    <insert_field/><update_field/><delete_field/><read_field/>
-    <attributes/>
-    <GUI><xloc>1024</xloc><yloc>80</yloc></GUI>
-  </transform>
+  <transform><name>Start</name><type>Dummy</type><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>64</xloc><yloc>80</yloc></GUI></transform>
+  <transform><name>Load April orders with Hop steps</name><type>Dummy</type><description>CSV Input orders_april.csv, Select Values, Filter Rows order_date greater than watermark, Database Lookup staging.orders, Table Output staging.orders.</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>280</xloc><yloc>80</yloc></GUI></transform>
+  <transform><name>Load April order_items with Hop steps</name><type>Dummy</type><description>CSV Input order_items_april.csv, Select Values, Database Lookup staging.order_items, Table Output staging.order_items.</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>560</xloc><yloc>80</yloc></GUI></transform>
+  <transform><name>Load April payments with Hop steps</name><type>Dummy</type><description>CSV Input payments_april.csv, Select Values, Filter Rows payment_date greater than watermark, Database Lookup staging.payments, Table Output staging.payments.</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>860</xloc><yloc>80</yloc></GUI></transform>
+  <transform><name>Update watermarks</name><type>Dummy</type><description>Use ExecSql or a control-table output only to update control.load_watermark after staging append succeeds.</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>1140</xloc><yloc>80</yloc></GUI></transform>
 
   <transform_error_handling/>
   <attributes/>

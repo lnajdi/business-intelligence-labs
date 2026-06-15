@@ -1,5 +1,6 @@
 -- sql/24_dim_channel.sql
 INSERT INTO warehouse.dim_channel
+    (channel_key, channel_name, channel_type)
 SELECT
     ROW_NUMBER() OVER (ORDER BY channel)           AS channel_key,
     channel                                        AS channel_name,

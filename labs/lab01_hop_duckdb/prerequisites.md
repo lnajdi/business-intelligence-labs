@@ -20,7 +20,7 @@
 ### 1. Apache Hop
 
 Apache Hop est le **chemin officiel d'ingestion** du lab : le pipeline GUI lit les CSV et charge
-les tables `raw.*` dans DuckDB.
+les tables `staging.*` dans DuckDB.
 
 Installer Apache Hop Desktop (**version 2.x récente recommandée**, requiert **Java 17 minimum**,
 **Java 21 recommandé** pour les dernières versions) depuis https://hop.apache.org/download/
@@ -38,7 +38,7 @@ puis tester la connexion `DuckDB_Lab1`.
 
 ### 2. DuckDB CLI
 
-DuckDB est le **moteur d'exploration** du lab : une fois les tables `raw.*` chargées par Hop,
+DuckDB est le **moteur d'exploration** du lab : une fois les tables `staging.*` chargées par Hop,
 les analyses se font avec la CLI DuckDB.
 
 ```bash
@@ -48,7 +48,7 @@ duckdb --version
 Si cette commande ne fonctionne pas, installer DuckDB CLI avant le lab depuis
 https://duckdb.org/docs/installation/. Les commandes `.read` utilisées dans les consignes
 sont des commandes de la CLI DuckDB. La CLI sert aussi de chemin de secours pour charger
-`raw.*` si Apache Hop est indisponible (voir le README).
+`staging.*` si Apache Hop est indisponible (voir le README).
 
 ### 3. Git
 
@@ -76,3 +76,4 @@ VS Code (https://code.visualstudio.com/), IntelliJ, Cursor, Sublime Text ou équ
 
 dbt n'est pas utilisé dans ce lab. Il sera introduit au Lab 2, après les séances sur la
 modélisation dimensionnelle.
+

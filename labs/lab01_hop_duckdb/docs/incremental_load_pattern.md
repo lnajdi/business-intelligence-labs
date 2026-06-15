@@ -1,111 +1,69 @@
-# Pattern de chargement incrémental — Lab 1
+# Pattern de chargement incremental - Lab 1
 
-## Le problème
+## Le probleme
 
-Après le chargement initial, de nouvelles données arrivent régulièrement (ici : commandes d'avril 2025). Il faut les intégrer sans recharger l'intégralité des données historiques.
-
----
+Apres le chargement initial, de nouvelles donnees arrivent regulierement. Ici, le batch d'avril 2025 doit etre integre sans recharger manuellement tous les CSV historiques.
 
 ## La table watermark
 
 ```sql
 -- control.load_watermark
-table_name      VARCHAR PRIMARY KEY   -- ex: 'orders'
-last_load_dt    DATE                  -- date max chargée lors du dernier run
+table_name      VARCHAR PRIMARY KEY
+last_load_dt    DATE
 updated_at      TIMESTAMP
 ```
 
-Le watermark stocke la **date maximale** connue dans staging. Le prochain chargement incrémental filtre `WHERE order_date > last_load_dt`.
-
-### Initialisation après chargement initial
+Le watermark stocke la date maximale connue dans `staging.*`. Le prochain chargement incremental filtre les fichiers batch avec `date > last_load_dt`.
 
 ```sql
-INSERT OR REPLACE INTO control.load_watermark(table_name, last_load_dt)
-SELECT 'orders', MAX(order_date) FROM staging.orders;
+SELECT COALESCE(MAX(last_load_dt), DATE '2000-01-01')
+FROM control.load_watermark
+WHERE table_name = 'orders';
 ```
 
----
+## Idempotence
 
-## Garantie d'idempotence
+Le pipeline Hop doit eviter les doublons techniques lors d'une reexecution :
 
-`INSERT OR IGNORE` (DuckDB) + filtrage explicite par PK garantit qu'une ré-exécution du script incrémental n'insère pas de doublons :
-
-```sql
-INSERT OR IGNORE INTO staging.orders
-SELECT o.* FROM raw.orders o
-WHERE o.order_date > (SELECT last_load_dt FROM control.load_watermark WHERE table_name='orders')
-  AND o.order_id IS NOT NULL ...;
+```text
+batch CSV
+  -> Select Values (types)
+  -> Filter Rows (date > watermark)
+  -> Database Lookup staging.<table> on natural key
+  -> keep only lookup misses
+  -> Table Output staging.<table>
 ```
 
-Si le script est relancé après interruption, les lignes déjà insérées sont ignorées (contrainte PRIMARY KEY).
-
----
+Dans le chemin SQL de secours, le meme principe est exprime avec `NOT EXISTS`.
 
 ## Pourquoi fact_sales fait un TRUNCATE + rechargement complet
 
-Dans ce lab, `fact_sales` est **recalculée entièrement** après chaque chargement incrémental (`30_fact_sales.sql` est rappelé). Ce choix :
+Dans ce lab, `fact_sales` est recalculee entierement apres chaque chargement incremental. Ce choix simplifie le raisonnement pedagogique, evite les problemes de cles de substitution orphelines et reste acceptable pour un petit jeu de donnees.
 
-- **Simplifie** le code pour un lab pédagogique
-- **Évite** les problèmes de clés de substitution orphelines
-- **Reste acceptable** à l'échelle du jeu de données (< 100 lignes)
+En production, on utiliserait plus souvent un `MERGE` ou un pattern d'upsert.
 
-**En production**, on utiliserait un pattern MERGE (UPSERT) :
+## Pieges courants
 
-```sql
--- Pattern production (non implémenté dans ce lab)
-MERGE INTO warehouse.fact_sales AS target
-USING (SELECT ... FROM staging.order_items WHERE ...) AS source
-ON target.sales_key = source.sales_key
-WHEN MATCHED THEN UPDATE SET ...
-WHEN NOT MATCHED THEN INSERT VALUES ...;
-```
+### Paiements en retard
 
----
+Un paiement peut arriver apres la commande. Le watermark de `payments` doit donc rester independant de celui de `orders`.
 
-## Pièges courants
+### Commandes annulees
 
-### 1. Paiements en retard (late-arriving payments)
+La commande `1019` dans `orders_april.csv` a le statut `Cancelled`. Elle est chargee dans `staging.orders`. La decision de l'inclure ou de l'exclure des indicateurs se prend au niveau warehouse ou dans les requetes analytiques.
 
-Un paiement peut arriver avec une date postérieure à celle de sa commande. Le watermark de `payments` doit être indépendant de celui de `orders`. Le script `51_incremental_load.sql` maintient des watermarks séparés.
+### Reinitialisation
 
-```sql
--- Watermark payments mis à jour indépendamment
-SELECT 'payments', MAX(payment_date), CURRENT_TIMESTAMP FROM staging.payments
-```
+Si `50_initial_full_load.sql` est relance, le warehouse et les watermarks sont reconstruits. Le prochain incremental repart de la date maximale chargee.
 
-### 2. Fuseaux horaires et dates
+## Sequence d'execution incrementale
 
-DuckDB stocke les `DATE` sans information de fuseau horaire. Si les CSVs source proviennent de systèmes en UTC+1 (Maroc), une commande passée à 23h30 heure locale peut avoir une date UTC du lendemain. Pour ce lab, toutes les dates sont en heure locale — pas de problème.
-
-### 3. Commandes annulées dans le batch incrémental
-
-La commande `1019` dans `orders_april.csv` a le statut `Cancelled`. Elle est bien chargée dans `staging.orders` et reste présente dans `warehouse.fact_sales` avec son statut, car `fact_sales` conserve les lignes de commande valides au grain ligne de commande. Les requêtes de chiffre d'affaires réalisé doivent filtrer `WHERE order_status = 'Completed'` pour exclure les commandes annulées, retournées ou non finalisées.
-
-### 4. Réinitialisation des watermarks
-
-Si les données sont rechargées depuis zéro (ex: `50_initial_full_load.sql` ré-exécuté), les watermarks dans `control.load_watermark` sont mis à jour par `40_create_control_schema.sql`. Le prochain chargement incrémental repartira bien de la bonne date.
-
----
-
-## Comparaison des approches
-
-| Approche              | Complexité | Idempotence | Adapté à ce lab |
-|-----------------------|------------|-------------|-----------------|
-| Full reload           | Faible     | Oui         | Pour petits volumes |
-| Watermark + append    | Moyenne    | Avec IGNORE  | **Oui — implémenté** |
-| MERGE/UPSERT          | Élevée     | Oui         | Production |
-| CDC (Change Data Capture) | Très élevée | Oui    | Systèmes temps réel |
-
----
-
-## Séquence d'exécution incrémentale
-
-```
-1. Charger les fichiers batch → raw.orders_batch2, raw.order_items_batch2, raw.payments_batch2
-2. Append dans raw.orders / raw.order_items / raw.payments (dédup par PK)
-3. Append dans staging.orders (filtrage watermark + règles qualité)
-4. Append dans staging.order_items (référence orders valides)
-5. Append dans staging.payments (référence orders valides)
-6. Reconstruire warehouse.fact_sales (TRUNCATE + INSERT complet)
-7. Mettre à jour control.load_watermark
+```text
+1. Lire orders_april.csv, order_items_april.csv, payments_april.csv
+2. Convertir les types et aligner les schemas
+3. Filtrer les lignes selon les watermarks orders/payments
+4. Eviter les doublons techniques dans staging
+5. Inserer les nouvelles lignes dans staging.*
+6. Reconstruire warehouse.fact_sales via p03
+7. Mettre a jour control.load_watermark
 ```

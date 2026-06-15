@@ -1,41 +1,34 @@
-# Architecture utilisée dans le Lab 1
+# Architecture utilisee dans le Lab 1
 
-> **Portée de ce document :** cette architecture décrit la **Partie A** (ingestion + exploration).
-> La **Partie B** prolonge le pipeline avec une couche staging, un modèle en étoile (warehouse),
-> un chargement incrémental et une comparaison budget vs réalisé. Voir `star_schema_design.md`.
+## Architecture canonique
 
 ```text
-CSV opérationnels
-      ↓
-Apache Hop pipeline
-      ↓
-DuckDB local
-      ↓
-SQL d'exploration
-      ↓
-Rapport qualité + premiers KPI
+CSV sources
+      -> Hop native ETL
+staging.*
+      -> Hop native ETL
+warehouse.*
+      -> DuckDB SQL exploration / validation
 ```
 
-## Pourquoi cette architecture ?
+DuckDB reste la base locale du lab. Apache Hop porte le chemin principal d'ETL : lecture des CSV, chargement de `staging.*`, puis transformation vers `warehouse.*`.
 
-- Les CSV simulent des exports de systèmes opérationnels.
-- Apache Hop rend visible la logique d'ingestion.
-- DuckDB permet d'analyser localement sans serveur.
-- SQL reste le langage principal pour comprendre les données.
-- Aucun modèle dimensionnel n'est demandé en **Partie A** (il est introduit en Partie B).
+## Role des couches
 
-## Introduit seulement en Partie B
+- `data/raw/` : fichiers CSV sources.
+- `staging.*` : landing zone typee. Les lignes y sont converties et alignees au schema, sans nettoyage metier.
+- `warehouse.*` : couche dimensionnelle nettoyee et conformee. Les dimensions, faits, mappings de cles et calculs de mesures y sont construits.
+- `control.*` : watermarks et metadonnees de chargement.
 
-- couche staging (règles de qualité) ;
-- schéma en étoile (dimensions + tables de faits) ;
-- chargement incrémental (watermark) ;
-- comparaison budget vs réalisé.
+## Role de SQL
+
+SQL sert a explorer, verifier et fournir un chemin CLI de secours. Il ne remplace pas le pipeline Hop natif attendu dans le lab.
 
 ## Ce qui est volontairement exclu du Lab 1
 
 - dbt ;
 - ClickHouse ;
 - Power BI / Superset ;
-- orchestration avancée ;
-- gouvernance avancée ;
-- SCD Type 2 (historisation des dimensions).
+- orchestration avancee ;
+- gouvernance avancee ;
+- SCD Type 2.

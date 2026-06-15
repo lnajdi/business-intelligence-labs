@@ -1,8 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <workflow>
   <name>wf_incremental_load</name>
   <name_sync_with_filename>Y</name_sync_with_filename>
-  <description>Incremental load: append April 2025 batch to staging, then rebuild facts. Reference skeleton — validate in Hop GUI.</description>
+  <description>Incremental load: append April 2025 batch to staging, then rebuild facts.</description>
   <parameters/>
 
   <actions>
@@ -96,3 +96,5 @@
   <notepads/>
   <attributes/>
 </workflow>
+
+

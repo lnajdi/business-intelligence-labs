@@ -15,7 +15,7 @@ La direction souhaite un premier diagnostic :
 
 > **Deux chemins disponibles**
 > - **Chemin officiel (Hop GUI) :** créer et exécuter le pipeline Apache Hop comme décrit ci-dessous.
-> - **Alternative CLI (si Hop indisponible) :** exécuter directement `duckdb duckdb/lab1.duckdb ".read sql/01_load_raw_tables.sql"` depuis la racine du lab. Les étapes 2 à 4 sont identiques dans les deux cas.
+> - **Alternative CLI (si Hop indisponible) :** exécuter directement `duckdb duckdb/lab1.duckdb ".read sql/01_load_staging_tables.sql"` depuis la racine du lab. Les étapes 2 à 4 sont identiques dans les deux cas.
 
 Créer un pipeline Apache Hop qui :
 
@@ -25,16 +25,16 @@ Créer un pipeline Apache Hop qui :
 4. conserve les noms de tables suivants :
 
 ```text
-raw.customers
-raw.categories
-raw.products
-raw.orders
-raw.order_items
-raw.payments
-raw.stock_movements
+staging.customers
+staging.categories
+staging.products
+staging.orders
+staging.order_items
+staging.payments
+staging.stock_movements
 ```
 
-Les fichiers `orders_april.csv`, `order_items_april.csv`, `payments_april.csv` et `sales_budget.csv` sont réservés à la Partie B. Ils ne doivent pas être chargés dans les tables `raw.*` principales de la Partie A.
+Les fichiers `orders_april.csv`, `order_items_april.csv`, `payments_april.csv` et `sales_budget.csv` sont réservés à la Partie B. Ils ne doivent pas être chargés dans les tables `staging.*` principales de la Partie A.
 
 Voir `hop/README_pipeline_apache_hop.md`.
 
@@ -65,7 +65,7 @@ duckdb duckdb/lab1.duckdb
 - premier calcul de chiffre d'affaires (`sql/04_kpi_exploration.sql`) ;
 - ventes par mois, canal et catégorie.
 
-> Ces analyses sont reprises en profondeur dans la Partie 2 sur le schéma en étoile.
+> Ces analyses sont reprises en profondeur dans la Partie B sur le schéma en étoile.
 
 ## Étape 3 — Rapport qualité initial
 
@@ -94,9 +94,11 @@ Ce lab se fait **en séance**, il n'y a **aucun rendu à remettre**. À la fin d
 devriez avoir produit (sur votre poste, pour votre propre usage) :
 
 - le pipeline Apache Hop (ou des captures d'écran) ;
-- la base DuckDB locale `duckdb/lab1.duckdb` avec les tables `raw.*` ;
+- la base DuckDB locale `duckdb/lab1.duckdb` avec les tables `staging.*` ;
 - vos requêtes d'exploration (partez de `sql/05_student_exploration_starter.sql`) ;
 - le `deliverables/quality_report_template.md` complété (≥ 3 anomalies) ;
 - le `deliverables/kpi_list_template.md` complété (3 KPI candidats).
 
 Servez-vous de `deliverables/checklist_submission.md` comme auto-vérification de fin de séance.
+
+
