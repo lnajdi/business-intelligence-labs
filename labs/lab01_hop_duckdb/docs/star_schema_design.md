@@ -39,14 +39,17 @@ Le grain de `fact_sales` est intentionnellement fin (ligne de commande) pour per
 
 ### dim_customer
 
-- **customer_key :** clé de substitution (`ROW_NUMBER() OVER (ORDER BY customer_id)`)
+- **customer_key :** clé de substitution **frappée par la base** (`DEFAULT nextval('warehouse.seq_dim_customer')`)
 - **customer_id_src :** ID source pour les jointures de chargement
 - **email :** `COALESCE(email, 'unknown@unknown.com')` — jamais NULL
 - Source : `staging.customers` après déduplication et normalisation
+- **Colonnes d'enrichissement :** `country_name` (code → nom, ex. `MA` → `Morocco`), `region`
+  (ville → roll-up géographique), `tenure_days` (jours depuis `signup_date`, calculé contre une
+  **date de référence fixe** — `2026-12-31` — pour rester reproductible, jamais `CURRENT_DATE`)
 
 ### dim_product
 
-- **product_key :** clé de substitution par `product_id` source
+- **product_key :** clé de substitution **frappée par la base** (`DEFAULT nextval('warehouse.seq_dim_product')`)
 - Enrichi avec `category_name` et `department` depuis `staging.categories`
 - `cost_price` utilisé dans `fact_sales` pour le calcul de marge
 
@@ -60,12 +63,21 @@ Le grain de `fact_sales` est intentionnellement fin (ligne de commande) pour per
 
 ## Stratégie de clés de substitution
 
-Toutes les dimensions utilisent `ROW_NUMBER() OVER (ORDER BY <id_source>)` comme clé de substitution lors du chargement initial. Ce pattern :
-- Garantit des entiers séquentiels
-- Reste déterministe (même ordre = mêmes clés sur re-chargement complet)
-- Correspond à un **SCD Type 1** (remplacement complet, pas d'historique)
+Les clés de substitution sont **frappées par la base** : chaque dimension (et `fact_sales`,
+`fact_stock`) a une séquence DuckDB `warehouse.seq_*` et sa colonne clé porte un
+`DEFAULT nextval('warehouse.seq_*')` (voir `sql/20_create_warehouse_schema.sql`). Le chargement
+(Hop `Table Output` ou oracle SQL) **n'insère pas** la colonne clé ; la base la remplit. Ce pattern :
+- Confie l'identité à la base (le *minting* de clé est du **plumbing**, pas de la logique métier) ;
+- Garantit des entiers séquentiels et uniques ;
+- Reste déterministe sur **rechargement complet** : `20_create_warehouse_schema.sql` fait
+  `CREATE OR REPLACE SEQUENCE` (repart à 1) ; en incrémental la séquence continue (clés nouvelles,
+  toujours uniques) ;
+- Correspond à un **SCD Type 1** (remplacement complet, pas d'historique).
 
-**SCD Type 2 non implémenté dans ce lab.** Pour une implémentation production, il faudrait ajouter des colonnes `valid_from`, `valid_to`, `is_current` et un SEQUENCE dédié pour les clés.
+**Exemptés :** `dim_date.date_key` (entier `YYYYMMDD` calculé) et `fact_budget.budget_id` (clé
+naturelle issue de `staging.budget`) ne sont pas des substitutions — pas de séquence.
+
+**SCD Type 2 non implémenté dans ce lab.** Pour une implémentation production, il faudrait ajouter des colonnes `valid_from`, `valid_to`, `is_current`.
 
 ---
 

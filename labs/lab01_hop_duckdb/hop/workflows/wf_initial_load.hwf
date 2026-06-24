@@ -1,8 +1,8 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <workflow>
   <name>wf_initial_load</name>
   <name_sync_with_filename>Y</name_sync_with_filename>
-  <description>Full initial load: CSV sources to staging to warehouse dims to warehouse facts to budget.</description>
+  <description>Full initial load: CSV to staging, dim_date (SQL) + dim_customer/product/channel (Hop), facts, budget, then post-load checks.</description>
   <parameters/>
 
   <actions>
@@ -30,7 +30,7 @@
       <description/>
       <type>PIPELINE</type>
       <attributes/>
-      <filename>hop/pipelines/p01_csv_to_staging.hpl</filename>
+      <filename>${PROJECT_HOME}/hop/pipelines/p01_csv_to_staging.hpl</filename>
       <run_configuration>local</run_configuration>
       <wait_until_finished>Y</wait_until_finished>
       <params_from_previous>N</params_from_previous>
@@ -53,24 +53,16 @@
     </action>
 
     <action>
-      <name>p02 Build Dimensions</name>
-      <description/>
-      <type>PIPELINE</type>
+      <name>Build dim_date</name>
+      <description>Sanctioned SQL exception: generated calendar. Runs sql/21_dim_date.sql (no source, no join, no business logic).</description>
+      <type>SQL</type>
       <attributes/>
-      <filename>hop/pipelines/p02_build_dims.hpl</filename>
-      <run_configuration>local</run_configuration>
-      <wait_until_finished>Y</wait_until_finished>
-      <params_from_previous>N</params_from_previous>
-      <exec_per_row>N</exec_per_row>
-      <clear_rows>N</clear_rows>
-      <clear_files>N</clear_files>
-      <set_logfile>N</set_logfile>
-      <logfile/><logext/>
-      <set_append_logfile>N</set_append_logfile>
-      <create_parent_folder>N</create_parent_folder>
-      <add_date>N</add_date><add_time>N</add_time>
-      <loglevel>Basic</loglevel>
-      <parameters><pass_all_parameters>Y</pass_all_parameters></parameters>
+      <connection>DuckDB_Lab1</connection>
+      <sql/>
+      <useVariableSubstitution>T</useVariableSubstitution>
+      <sqlfromfile>T</sqlfromfile>
+      <sqlfilename>${PROJECT_HOME}/sql/21_dim_date.sql</sqlfilename>
+      <sendOneStatement>F</sendOneStatement>
       <parallel>N</parallel>
       <xloc>384</xloc>
       <yloc>80</yloc>
@@ -78,11 +70,11 @@
     </action>
 
     <action>
-      <name>p03 Build Facts</name>
+      <name>p02 dim_customer</name>
       <description/>
       <type>PIPELINE</type>
       <attributes/>
-      <filename>hop/pipelines/p03_build_facts.hpl</filename>
+      <filename>${PROJECT_HOME}/hop/pipelines/p02_dim_customer.hpl</filename>
       <run_configuration>local</run_configuration>
       <wait_until_finished>Y</wait_until_finished>
       <params_from_previous>N</params_from_previous>
@@ -101,11 +93,11 @@
     </action>
 
     <action>
-      <name>p05 Load Budget</name>
+      <name>p02 dim_product</name>
       <description/>
       <type>PIPELINE</type>
       <attributes/>
-      <filename>hop/pipelines/p05_load_budget.hpl</filename>
+      <filename>${PROJECT_HOME}/hop/pipelines/p02_dim_product.hpl</filename>
       <run_configuration>local</run_configuration>
       <wait_until_finished>Y</wait_until_finished>
       <params_from_previous>N</params_from_previous>
@@ -124,28 +116,158 @@
     </action>
 
     <action>
-      <name>SUCCESS</name>
+      <name>p02 dim_channel</name>
       <description/>
-      <type>DUMMY</type>
+      <type>PIPELINE</type>
       <attributes/>
+      <filename>${PROJECT_HOME}/hop/pipelines/p02_dim_channel.hpl</filename>
+      <run_configuration>local</run_configuration>
+      <wait_until_finished>Y</wait_until_finished>
+      <params_from_previous>N</params_from_previous>
+      <exec_per_row>N</exec_per_row>
+      <clear_rows>N</clear_rows><clear_files>N</clear_files>
+      <set_logfile>N</set_logfile><logfile/><logext/>
+      <set_append_logfile>N</set_append_logfile>
+      <create_parent_folder>N</create_parent_folder>
+      <add_date>N</add_date><add_time>N</add_time>
+      <loglevel>Basic</loglevel>
+      <parameters><pass_all_parameters>Y</pass_all_parameters></parameters>
       <parallel>N</parallel>
       <xloc>864</xloc>
       <yloc>80</yloc>
       <attributes_hac/>
     </action>
+
+    <action>
+      <name>p03 Build Facts</name>
+      <description/>
+      <type>PIPELINE</type>
+      <attributes/>
+      <filename>${PROJECT_HOME}/hop/pipelines/p03_build_facts.hpl</filename>
+      <run_configuration>local</run_configuration>
+      <wait_until_finished>Y</wait_until_finished>
+      <params_from_previous>N</params_from_previous>
+      <exec_per_row>N</exec_per_row>
+      <clear_rows>N</clear_rows><clear_files>N</clear_files>
+      <set_logfile>N</set_logfile><logfile/><logext/>
+      <set_append_logfile>N</set_append_logfile>
+      <create_parent_folder>N</create_parent_folder>
+      <add_date>N</add_date><add_time>N</add_time>
+      <loglevel>Basic</loglevel>
+      <parameters><pass_all_parameters>Y</pass_all_parameters></parameters>
+      <parallel>N</parallel>
+      <xloc>1024</xloc>
+      <yloc>80</yloc>
+      <attributes_hac/>
+    </action>
+
+    <action>
+      <name>p05 Load Budget</name>
+      <description/>
+      <type>PIPELINE</type>
+      <attributes/>
+      <filename>${PROJECT_HOME}/hop/pipelines/p05_load_budget.hpl</filename>
+      <run_configuration>local</run_configuration>
+      <wait_until_finished>Y</wait_until_finished>
+      <params_from_previous>N</params_from_previous>
+      <exec_per_row>N</exec_per_row>
+      <clear_rows>N</clear_rows><clear_files>N</clear_files>
+      <set_logfile>N</set_logfile><logfile/><logext/>
+      <set_append_logfile>N</set_append_logfile>
+      <create_parent_folder>N</create_parent_folder>
+      <add_date>N</add_date><add_time>N</add_time>
+      <loglevel>Basic</loglevel>
+      <parameters><pass_all_parameters>Y</pass_all_parameters></parameters>
+      <parallel>N</parallel>
+      <xloc>1184</xloc>
+      <yloc>80</yloc>
+      <attributes_hac/>
+    </action>
+
+    <action>
+      <name>Eval fact_sales = 176</name>
+      <description>Assert warehouse.fact_sales holds exactly 176 rows after the full load.</description>
+      <type>EVAL_TABLE_CONTENT</type>
+      <attributes/>
+      <connection>DuckDB_Lab1</connection>
+      <schemaname>warehouse</schemaname>
+      <tablename>fact_sales</tablename>
+      <success_condition>rows_count_equal</success_condition>
+      <limit>176</limit>
+      <is_custom_sql>N</is_custom_sql>
+      <is_usevars>N</is_usevars>
+      <add_rows_result>N</add_rows_result>
+      <clear_result_rows>Y</clear_result_rows>
+      <clear_result_files>Y</clear_result_files>
+      <custom_sql/>
+      <parallel>N</parallel>
+      <xloc>1344</xloc>
+      <yloc>80</yloc>
+      <attributes_hac/>
+    </action>
+
+    <action>
+      <name>Run checks</name>
+      <description>Shared post-load invariants (fact_stock=22, fact_budget=12, no NULL keys).</description>
+      <type>WORKFLOW</type>
+      <attributes/>
+      <filename>${PROJECT_HOME}/hop/workflows/wf_checks.hwf</filename>
+      <run_configuration>local</run_configuration>
+      <wait_until_finished>Y</wait_until_finished>
+      <params_from_previous>N</params_from_previous>
+      <exec_per_row>N</exec_per_row>
+      <set_logfile>N</set_logfile><logfile/><logext/>
+      <set_append_logfile>N</set_append_logfile>
+      <create_parent_folder>N</create_parent_folder>
+      <add_date>N</add_date><add_time>N</add_time>
+      <loglevel>Basic</loglevel>
+      <parameters><pass_all_parameters>Y</pass_all_parameters></parameters>
+      <parallel>N</parallel>
+      <xloc>1504</xloc>
+      <yloc>80</yloc>
+      <attributes_hac/>
+    </action>
+
+    <action>
+      <name>SUCCESS</name>
+      <description/>
+      <type>DUMMY</type>
+      <attributes/>
+      <parallel>N</parallel>
+      <xloc>1664</xloc>
+      <yloc>80</yloc>
+      <attributes_hac/>
+    </action>
+
+    <action>
+      <name>Abort on failed check</name>
+      <description>The full load did not produce the expected warehouse state.</description>
+      <type>ABORT</type>
+      <attributes/>
+      <message>Full load check failed: warehouse.fact_sales is not 176 rows (or a shared invariant failed). Verify the pipelines / oracle load.</message>
+      <always_log_rows>Y</always_log_rows>
+      <parallel>N</parallel>
+      <xloc>1424</xloc>
+      <yloc>240</yloc>
+      <attributes_hac/>
+    </action>
   </actions>
 
   <hops>
-    <hop><from>Start</from>              <to>p01 CSV to Staging</to>  <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>Y</unconditional></hop>
-    <hop><from>p01 CSV to Staging</from> <to>p02 Build Dimensions</to><enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
-    <hop><from>p02 Build Dimensions</from><to>p03 Build Facts</to>    <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
-    <hop><from>p03 Build Facts</from>    <to>p05 Load Budget</to>     <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
-    <hop><from>p05 Load Budget</from>    <to>SUCCESS</to>             <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>Start</from>               <to>p01 CSV to Staging</to>  <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>Y</unconditional></hop>
+    <hop><from>p01 CSV to Staging</from>  <to>Build dim_date</to>      <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>Build dim_date</from>      <to>p02 dim_customer</to>    <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>p02 dim_customer</from>    <to>p02 dim_product</to>     <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>p02 dim_product</from>     <to>p02 dim_channel</to>     <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>p02 dim_channel</from>     <to>p03 Build Facts</to>     <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>p03 Build Facts</from>     <to>p05 Load Budget</to>     <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>p05 Load Budget</from>     <to>Eval fact_sales = 176</to><enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>Eval fact_sales = 176</from><to>Run checks</to>         <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>Run checks</from>          <to>SUCCESS</to>             <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>Eval fact_sales = 176</from><to>Abort on failed check</to><enabled>Y</enabled><evaluation>N</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>Run checks</from>          <to>Abort on failed check</to><enabled>Y</enabled><evaluation>N</evaluation><unconditional>N</unconditional></hop>
   </hops>
 
   <notepads/>
   <attributes/>
 </workflow>
-
-
-

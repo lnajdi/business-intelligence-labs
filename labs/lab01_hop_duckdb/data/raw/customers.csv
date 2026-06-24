@@ -10,3 +10,9 @@ customer_id,customer_name,email,city,country,signup_date,segment
 9,Leila Chraibi,leila.chraibi@example.com,Marrakech,MA,2024-06-13,Retail
 10,Hicham Naciri,hicham.naciri@example.com,Casablanca,MA,2024-07-01,SMB
 10,Hicham Naciri Duplicate,hicham.duplicate@example.com,Casablanca,MA,2024-07-01,SMB
+11,Sofia Bennani,sofia.bennani@example.com,Casablanca,MA,2024-03-05,Retail
+12,Yassine Fassi,yassine.fassi@example.com,Rabat,MA,2024-03-19,SMB
+13,Rania Othmani,rania.othmani@example.com,Marrakech,MA,2024-04-22,Retail
+14,Adam Lahlou,adam.lahlou@example.com,Fes,MA,2024-05-14,Enterprise
+15,Hajar Saidi,hajar.saidi@example.com,Tangier,MA,2024-06-02,Retail
+16,Bilal Kettani,bilal.kettani@example.com,Agadir,MA,2024-06-28,SMB

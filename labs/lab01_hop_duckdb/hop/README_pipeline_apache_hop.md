@@ -20,6 +20,8 @@ CSV file input
 
 La couche staging est une copie typee minimale des sources. Ne pas y appliquer de normalisation metier, de deduplication analytique, de filtrage d'orphelins ou de calculs de mesures.
 
+![p01 CSV vers staging](../docs/diagrams/p01_staging_canvas.png)
+
 ## Premier flux pas a pas (customers)
 
 Le squelette `pipelines/p01_csv_to_staging.hpl` contient deja ce flux pour
@@ -84,7 +86,7 @@ staging.orders
 staging.order_items
 staging.payments
 staging.stock_movements
-staging.budget          # source Partie B (sales_budget.csv)
+staging.budget          # sales_budget.csv : charge en Partie A, utilise en Partie B
 ```
 
 ## Controles Hop minimum
@@ -94,3 +96,14 @@ staging.budget          # source Partie B (sales_budget.csv)
 - valeurs vides sur identifiants techniques ;
 - rejet ou marquage des lignes illisibles ;
 - journalisation du nombre de lignes lues et chargees.
+
+## Workflows d'orchestration
+
+Les pipelines sont enchaines par des workflows `.hwf` dans `workflows/` :
+
+- `wf_initial_load.hwf` — chargement complet : `p01` -> `dim_date` (action SQL) -> `p02_dim_customer`
+  -> `p02_dim_product` -> `p02_dim_channel` -> `p03` -> `p05`, puis les controles.
+- `wf_incremental_load.hwf` — chargement incremental : `p04` -> `p03`, puis les controles.
+- `wf_checks.hwf` — sous-workflow de **controles** partage, appele par les deux precedents : il
+  verifie les comptes attendus (`fact_stock=22`, `fact_budget=12`, aucune cle de substitution NULL
+  dans `fact_sales`) et declenche une action `Abort` en cas d'ecart.

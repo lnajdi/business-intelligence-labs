@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pipeline>
+  <info>
+    <name>p02_dim_customer</name>
+    <name_sync_with_filename>Y</name_sync_with_filename>
+    <description>Standalone Hop-native build of warehouse.dim_customer (isolated for debugging). Replace each Dummy with the real transform. Surrogate customer_key is minted by the DB (DEFAULT nextval) - do NOT map it in Table Output.</description>
+    <pipeline_type>Normal</pipeline_type>
+    <capture_transform_performance>N</capture_transform_performance>
+  </info>
+
+  <order>
+    <hop><from>Read staging.customers</from><to>Filter customer_name</to><enabled>Y</enabled></hop>
+    <hop><from>Filter customer_name</from><to>Sort for dedup</to><enabled>Y</enabled></hop>
+    <hop><from>Sort for dedup</from><to>Unique customer_id</to><enabled>Y</enabled></hop>
+    <hop><from>Unique customer_id</from><to>Formula city_norm</to><enabled>Y</enabled></hop>
+    <hop><from>Formula city_norm</from><to>Map city</to><enabled>Y</enabled></hop>
+    <hop><from>Map city</from><to>Map country_name</to><enabled>Y</enabled></hop>
+    <hop><from>Map country_name</from><to>Map region</to><enabled>Y</enabled></hop>
+    <hop><from>Map region</from><to>Calc tenure_days</to><enabled>Y</enabled></hop>
+    <hop><from>Calc tenure_days</from><to>If Null email</to><enabled>Y</enabled></hop>
+    <hop><from>If Null email</from><to>Select and rename</to><enabled>Y</enabled></hop>
+    <hop><from>Select and rename</from><to>Write dim_customer</to><enabled>Y</enabled></hop>
+  </order>
+
+  <transform><name>Read staging.customers</name><type>Dummy</type><description>Replace with Table Input: SELECT * FROM staging.customers (connection DuckDB_Lab1).</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>64</xloc><yloc>80</yloc></GUI></transform>
+  <transform><name>Filter customer_name</name><type>Dummy</type><description>Replace with Filter Rows: customer_name IS NOT NULL. Do NOT re-test customer_id (guaranteed by staging p01). Route rejects with a reason_code.</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>224</xloc><yloc>80</yloc></GUI></transform>
+  <transform><name>Sort for dedup</name><type>Dummy</type><description>Replace with Sort Rows: customer_id ASC, signup_date ASC, customer_name ASC. Required before Unique Rows.</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>384</xloc><yloc>80</yloc></GUI></transform>
+  <transform><name>Unique customer_id</name><type>Dummy</type><description>Replace with Unique Rows: compare on customer_id (keeps first row of the sort = oldest signup, then name).</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>544</xloc><yloc>80</yloc></GUI></transform>
+  <transform><name>Formula city_norm</name><type>Dummy</type><description>Replace with Formula: city_norm = UPPER(TRIM([city])). Calculator has UpperCase but no Trim.</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>704</xloc><yloc>80</yloc></GUI></transform>
+  <transform><name>Map city</name><type>Dummy</type><description>Replace with Value Mapper: city_norm -> city (CASABLANCA->Casablanca, FES/FEZ->Fes, TANGIER/TANGER->Tangier, ...). Default upon non-matching = Unknown.</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>864</xloc><yloc>80</yloc></GUI></transform>
+  <transform><name>Map country_name</name><type>Dummy</type><description>Replace with Value Mapper: country -> country_name (MA->Morocco). Default = Unknown. Keep raw country alongside.</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>1024</xloc><yloc>80</yloc></GUI></transform>
+  <transform><name>Map region</name><type>Dummy</type><description>Replace with Value Mapper: city -> region (Casablanca->Grand Casablanca, Rabat->Rabat-Sale, ...). Default = Unknown.</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>1184</xloc><yloc>80</yloc></GUI></transform>
+  <transform><name>Calc tenure_days</name><type>Dummy</type><description>Replace with Calculator: tenure_days = Date A - Date B (in days), A = fixed ref date 2026-12-31, B = signup_date. Use a fixed ref date (not now) for reproducibility.</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>1344</xloc><yloc>80</yloc></GUI></transform>
+  <transform><name>If Null email</name><type>Dummy</type><description>Replace with If Null: email -> unknown@unknown.com.</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>1504</xloc><yloc>80</yloc></GUI></transform>
+  <transform><name>Select and rename</name><type>Dummy</type><description>Replace with Select Values: rename customer_id -> customer_id_src; final order = dim_customer schema WITHOUT customer_key (customer_id_src, customer_name, email, city, region, country, country_name, signup_date, tenure_days, segment).</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>1664</xloc><yloc>80</yloc></GUI></transform>
+  <transform><name>Write dim_customer</name><type>Dummy</type><description>Replace with Table Output: warehouse.dim_customer, truncate = Y. Do NOT map customer_key (DB fills it via DEFAULT nextval).</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>1824</xloc><yloc>80</yloc></GUI></transform>
+
+  <transform_error_handling/>
+  <attributes/>
+</pipeline>

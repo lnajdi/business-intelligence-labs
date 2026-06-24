@@ -3,12 +3,12 @@
 
 TRUNCATE warehouse.fact_sales;
 
+-- sales_key n'est PAS frappée ici : DEFAULT nextval('warehouse.seq_fact_sales').
 INSERT INTO warehouse.fact_sales
-    (sales_key, order_item_id_src, date_key, customer_key, product_key, channel_key,
+    (order_item_id_src, date_key, customer_key, product_key, channel_key,
      order_id, quantity, sale_unit_price, cost_unit_price, discount_amount,
      gross_amount, net_amount, cost_amount, margin_amount, order_status, loaded_at)
 SELECT
-    ROW_NUMBER() OVER (ORDER BY oi.order_item_id)                          AS sales_key,
     oi.order_item_id                                                       AS order_item_id_src,
     dd.date_key,
     dc.customer_key,

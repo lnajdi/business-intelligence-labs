@@ -1,10 +1,15 @@
-# Blueprint - p01_csv_to_staging
+# Blueprint - p01_csv_to_staging — notes approfondies
 
+> **La recette de construction** (flux des transforms + réglages clés du dialogue GUI) est
+> dans `../../lab01_consignes.md`, **Partie A — Étape 1**. Ce blueprint ne garde que les
+> notes approfondies et les pièges.
 > Concepts Hop (projet, pipeline vs workflow, transform, Run) : `../../docs/apache_hop_concepts.md`.
 
 ## Objectif
 
 Construire un pipeline Apache Hop qui charge les CSV sources vers `staging.*`. Cette couche est une landing zone typee : elle convertit les types, aligne les schemas et isole les rejets techniques. Elle ne normalise pas les villes, ne filtre pas les statuts metier et ne supprime pas les references orphelines.
+
+![p01 CSV vers staging](../../docs/diagrams/p01_staging_canvas.png)
 
 ## Flow de la sous-pipeline CUSTOMERS
 
@@ -62,6 +67,14 @@ Interdit dans `p01` :
 - suppression des orphelins ;
 - calcul de KPI ou de mesures.
 
+> **Le `Validate <id>` de staging n'est PAS le filtre des dimensions (p02).** Ici on ne rejette
+> qu'un cas *technique* : la ligne n'a pas d'identifiant propre (`customer_id IS NULL`), donc elle
+> est inexploitable comme enregistrement. Les rejets *metier/referentiels* (references orphelines,
+> doublons de `customer_id`, statut invalide) sont traites plus tard, au chargement warehouse.
+> Une meme condition n'est verifiee que dans une seule couche : p02 fait confiance a staging et
+> ne re-teste pas le null. Bonne pratique : router les rejets (`reason_code = MISSING_KEY`) au lieu
+> de les supprimer, pour que `chargees + rejetees = source`.
+
 ## Tables a charger
 
 - `staging.customers`
@@ -71,19 +84,10 @@ Interdit dans `p01` :
 - `staging.order_items`
 - `staging.payments`
 - `staging.stock_movements`
-- `staging.budget` (source de la Partie B : `sales_budget.csv`)
+- `staging.budget` (`sales_budget.csv` : chargé en Partie A, utilisé en Partie B)
 
-## Reglages cles par transform (dialogue GUI)
-
-Valeurs telles que definies dans `p01_csv_to_staging.hpl` (flux customers) :
-
-| Transform | Reglages a verifier dans le dialogue |
-|-----------|--------------------------------------|
-| CSVInput | Filename `${DATA_DIR}/customers.csv` ; Separator `,` ; Enclosure `"` ; Header `Y` ; champs types (Date au format `yyyy-MM-dd`, `city` Trim `both`) |
-| FilterRows | Condition `customer_id IS NOT NULL` ; Send true to `Select customer fields` ; Send false to `Rejects customers` |
-| SelectValues | Remplace le `Dummy` du squelette ; fige noms / types / ordre des colonnes ; **ne pas** normaliser `city` ici |
-| TableOutput | Connection `DuckDB_Lab1` ; Schema `staging` ; Table `customers` ; Truncate table `Y` |
-| TextFileOutput | Fichier `data/processed/rejects_customers.csv` (journal des rejets) |
+> Réglages détaillés du dialogue GUI : tableau « Réglages clés par transform » de la
+> **Partie A — Étape 1** des consignes.
 
 ## Pieges courants
 

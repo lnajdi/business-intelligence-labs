@@ -1,10 +1,12 @@
 -- sql/31_fact_stock.sql
 TRUNCATE warehouse.fact_stock;
 
+-- stock_key n'est PAS frappée ici : DEFAULT nextval('warehouse.seq_fact_stock').
+-- movement_id (clé naturelle source) est conservé comme movement_id_src.
 INSERT INTO warehouse.fact_stock
-    (stock_key, date_key, product_key, qty_in, qty_out, warehouse, loaded_at)
+    (movement_id_src, date_key, product_key, qty_in, qty_out, warehouse, loaded_at)
 SELECT
-    sm.movement_id                                                         AS stock_key,
+    sm.movement_id                                                         AS movement_id_src,
     dd.date_key,
     dp.product_key,
     CASE sm.movement_type WHEN 'IN'  THEN sm.quantity ELSE 0 END          AS qty_in,

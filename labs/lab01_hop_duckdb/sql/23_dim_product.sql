@@ -1,9 +1,11 @@
 -- sql/23_dim_product.sql
+-- product_key n'est PAS frappée ici : DEFAULT nextval('warehouse.seq_dim_product').
+-- category_name + department sont dénormalisés dans dim_product (étoile, pas flocon).
+-- LEFT JOIN : on garde le produit même sans catégorie (category_name/department NULL).
 INSERT INTO warehouse.dim_product
-    (product_key, product_id_src, product_name, category_id, category_name,
+    (product_id_src, product_name, category_id, category_name,
      department, unit_price, cost_price, active_flag, loaded_at)
 SELECT
-    ROW_NUMBER() OVER (ORDER BY product_id)        AS product_key,
     p.product_id                                   AS product_id_src,
     p.product_name,
     p.category_id,

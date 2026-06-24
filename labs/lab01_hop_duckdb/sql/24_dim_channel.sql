@@ -1,8 +1,8 @@
 -- sql/24_dim_channel.sql
+-- channel_key n'est PAS frappée ici : DEFAULT nextval('warehouse.seq_dim_channel').
 INSERT INTO warehouse.dim_channel
-    (channel_key, channel_name, channel_type)
+    (channel_name, channel_type)
 SELECT
-    ROW_NUMBER() OVER (ORDER BY channel)           AS channel_key,
     channel                                        AS channel_name,
     CASE channel
         WHEN 'Online'  THEN 'Digital'

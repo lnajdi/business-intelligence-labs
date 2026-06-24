@@ -12,7 +12,7 @@ orders.csv           -> staging.orders
 order_items.csv      -> staging.order_items
 payments.csv         -> staging.payments
 stock_movements.csv  -> staging.stock_movements
-sales_budget.csv     -> staging.budget          # utilise en Partie B
+sales_budget.csv     -> staging.budget          # charge en Partie A, utilise en Partie B
 ```
 
 ## Version avec controles techniques

@@ -1,7 +1,7 @@
 {
   "rdbms": {
     "DuckDB": {
-      "databaseName": "${HOP_PROJECT_HOME}/duckdb/lab1.duckdb",
+      "databaseName": "${PROJECT_HOME}/duckdb/lab1.duckdb",
       "pluginId": "DuckDB",
       "accessType": 0,
       "hostname": "",

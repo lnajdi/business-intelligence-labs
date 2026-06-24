@@ -1,5 +1,8 @@
-# Blueprint - p05_load_budget
+# Blueprint - p05_load_budget — notes approfondies
 
+> **La recette de construction** (flux des transforms + réglages clés du dialogue GUI) est
+> dans `../../lab01_consignes.md`, **Partie B-4**. Ce blueprint ne garde que les notes
+> approfondies (mapping vers `fact_budget`, grain, dépendances) et les pièges.
 > Concepts Hop (transform, Database Lookup, Run) : `../../docs/apache_hop_concepts.md`.
 
 ## Objectif
@@ -8,6 +11,8 @@ Charger les donnees de budget dans `warehouse.fact_budget`. Le budget est une
 source analytique : comme toutes les autres sources, `sales_budget.csv` transite
 d'abord par `staging.budget` (chargement type en `p01`), puis `p05` lit la table
 staging, resout les libelles/cles via lookups, et ecrit le fait.
+
+![p05 chargement budget](../../docs/diagrams/p05_budget_canvas.png)
 
 ```text
 staging.budget
@@ -59,12 +64,8 @@ SELECT COUNT(*) FROM warehouse.fact_budget WHERE channel_key IS NULL;
 -- Attendu : 0 (tous les canaux du budget existent dans dim_channel)
 ```
 
-## Reglages cles par transform (dialogue GUI)
-
-| Transform | Reglages a verifier dans le dialogue |
-|-----------|--------------------------------------|
-| Database Lookup (channel_key) | Table `warehouse.dim_channel` ; cle de jointure `channel` ; champ retourne `channel_key` ; valeur non trouvee -> NULL (a detecter en verif) |
-| Table Output | Connection `DuckDB_Lab1` ; schema `warehouse` ; table `fact_budget` ; Truncate `Y` |
+> Réglages détaillés du dialogue GUI (Database Lookup `channel_key`, Table Output) :
+> tableau « Réglages clés par transform » de la **Partie B-4** des consignes.
 
 ## Pieges courants
 

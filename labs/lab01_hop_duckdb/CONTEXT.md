@@ -17,7 +17,7 @@ Extract, Transform, Load. In this lab, Hop extracts CSV sources, transforms rows
 Typed landing layer in DuckDB. It is a minimal copy of source CSVs with type conversion, schema alignment, and technical rejects. It does not apply city normalization, business filtering, orphan filtering, analytical deduplication, surrogate-key mapping, or measure calculation.
 
 **warehouse**  
-Cleaned and conformed dimensional layer in DuckDB. Dimensions and facts live here. Business rules, joins, deduplication, normalization, surrogate keys, and measures are applied while loading this layer.
+Cleaned and conformed dimensional layer in DuckDB. Dimensions and facts live here. Business rules, joins, deduplication, normalization, and measures are applied while loading this layer. Surrogate keys are minted by the database (DuckDB sequences via `DEFAULT nextval`), not by an `Add Sequence` transform.
 
 **Hop native transform**  
 A visible Apache Hop step such as `CSV Input`, `Select Values`, `Filter Rows`, `Value Mapper`, `Calculator`, `Database Lookup`, `Merge Join`, `Unique Rows`, `Add Sequence`, or `Table Output`.

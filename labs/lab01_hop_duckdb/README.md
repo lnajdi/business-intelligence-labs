@@ -2,7 +2,7 @@
 
 **Contexte :** premier lab du cours BI, à réaliser après les séances 1 et 2.  
 **Outils :** Apache Hop + DuckDB CLI  
-**Durée indicative :** ~3h pour la partie A, ~3h pour la partie B (extension séparée)  
+**Durée indicative :** ~3h pour la partie A, ~3h pour la partie B (même lab, d'une traite)  
 **dbt :** non utilisé dans ce lab
 
 ## Objectif pédagogique
@@ -11,10 +11,16 @@ Comprendre les données avant de modéliser. Le but de la partie A est de charge
 explorer leur qualité, distinguer données opérationnelles et données analytiques, puis proposer
 une première lecture métier.
 
-La partie A construit déjà la couche `staging.*` (ingestion typée). La partie B
-(`lab01_part_b_consignes.md`) prolonge le lab en bâtissant sur ce staging un schéma en
-étoile (`warehouse.*`), un chargement incrémental et une comparaison budget vs réalisé. Elle
-doit être traitée comme une extension séparée, pas comme une étape cachée de la partie A.
+La partie A construit déjà la couche `staging.*` (ingestion typée). La partie B prolonge
+directement le lab en bâtissant sur ce staging un schéma en étoile (`warehouse.*`), un
+chargement incrémental et une comparaison budget vs réalisé. Les deux parties forment **un
+seul lab continu** et sont décrites dans `lab01_consignes.md`.
+
+## Vue d'ensemble
+
+![Roadmap du Lab 1](docs/diagrams/overview_lab_roadmap.png)
+
+![Roles Hop, DuckDB et SQL](docs/diagrams/overview_architecture_roles.png)
 
 ## Structure du dossier
 
@@ -23,9 +29,8 @@ labs/lab01_hop_duckdb/
   README.md
   CONTEXT.md                     # architecture canonique ETL + glossaire
   announcement.md                # annonce du lab (prérequis à installer)
-  prerequisites.md
-  lab01_part_a_consignes.md      # partie A : ingestion + exploration
-  lab01_part_b_consignes.md      # partie B : warehouse + incremental
+  guide_setup.md                 # setup : prérequis → install → projet Hop → connexion → schémas
+  lab01_consignes.md             # le lab complet (partie A ingestion + partie B warehouse/incremental)
   data/
     raw/                         # CSV sources
     processed/                   # exports/rejets Hop optionnels
@@ -44,9 +49,13 @@ Le dossier `data/raw/` contient trois familles de fichiers :
 - **Batch incrémental de la partie B :** `orders_april.csv`, `order_items_april.csv`, `payments_april.csv`.
 - **Budget de la partie B :** `sales_budget.csv`.
 
+> **Première installation ?** Suivez `guide_setup.md` : le pas-à-pas complet
+> (Windows d'abord, puis Linux/macOS) pour installer les outils, créer le projet Hop,
+> vérifier la connexion DuckDB et créer les schémas avant de commencer.
+
 ## Démarrage rapide — partie A
 
-**Chemin officiel (ingestion Hop) :** Suivre `lab01_part_a_consignes.md` → Étape 1, puis revenir ici pour les étapes 2 à 4.
+**Chemin officiel (ingestion Hop) :** Suivre `lab01_consignes.md` → Partie A, Étape 1, puis revenir ici pour les étapes 2 à 4.
 
 **Alternative / vérification CLI (sans Hop) :**
 Si Apache Hop n'est pas disponible, les tables `staging.*` peuvent être créées directement avec la CLI DuckDB :
@@ -59,7 +68,7 @@ duckdb duckdb/lab1.duckdb ".read sql/01_load_staging_tables.sql"
 
 Ces commandes CLI servent aussi à vérifier que le pipeline Hop a produit les bons résultats.
 
-**Exploration DuckDB (Étapes 2-4 de lab01_part_a_consignes.md) :**
+**Exploration DuckDB (Partie A, Étapes 2-4 de lab01_consignes.md) :**
 
 ```bash
 duckdb duckdb/lab1.duckdb
@@ -85,5 +94,4 @@ Le lab se fait en séance, il n'y a aucun rendu à remettre. En fin de Partie A,
 3. vos requêtes SQL d'exploration ;
 4. un rapport qualité initial (`deliverables/quality_report_template.md`) ;
 5. une première liste de KPI et questions métier (`deliverables/kpi_list_template.md`).
-
 

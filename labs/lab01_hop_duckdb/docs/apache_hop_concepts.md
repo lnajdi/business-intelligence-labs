@@ -15,7 +15,7 @@ dossier sur disque + sa configuration.
 
 Une fois le projet ouvert, Hop expose deux variables utiles :
 
-- `${HOP_PROJECT_HOME}` : résolu automatiquement au chemin du projet (le dossier du
+- `${PROJECT_HOME}` : résolu automatiquement au chemin du projet (le dossier du
   lab). Le fichier DuckDB est donc à `duckdb/lab1.duckdb` relativement à ce dossier.
 - `${DATA_DIR}` : paramètre défini dans les pipelines du lab, par défaut `data/raw`.
   Les transforms de lecture CSV pointent vers `${DATA_DIR}/customers.csv`, etc.
@@ -87,17 +87,18 @@ Les transforms qui touchent la base (`Table Input`, `Table Output`,
   dossier `lib/` du projet Hop. Sans ce `.jar`, le **Test connection** échoue.
 - Vérification : clic droit sur `DuckDB_Lab1` → **Test connection**.
 
-Les détails d'installation (driver, `lib/`, test) sont rappelés dans les pré-requis
-de `lab01_part_b_consignes.md`.
+Les détails d'installation (driver, `lib/`, test) sont rappelés dans `guide_setup.md`.
 
 ## 6. Transform natif vs SQL
 
-Le chemin principal du lab est **Hop natif** : la logique (filtres, jointures,
-déduplication, lookups, clés de substitution, calculs de mesures) doit être
+Le chemin principal du lab est **Hop natif** : la logique métier (filtres, jointures,
+déduplication, lookups, normalisation, calculs de mesures) doit être
 **visible sur le canvas** sous forme de transforms, pas cachée dans un
 `INSERT ... SELECT`.
 
 `ExecSql` reste autorisé uniquement pour le **plumbing** : créer un schéma/table,
+`CREATE SEQUENCE` (les clés de substitution sont frappées par la base via
+`DEFAULT nextval` — c'est de l'infrastructure d'identité, pas de la logique métier),
 `TRUNCATE`, initialiser ou mettre à jour `control.*`. Les scripts SQL de `sql/`
 servent d'**oracle de validation** et de **chemin de secours CLI**, pas de pipeline.
 

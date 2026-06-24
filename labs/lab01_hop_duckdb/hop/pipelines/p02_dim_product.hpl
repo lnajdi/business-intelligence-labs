@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pipeline>
+  <info>
+    <name>p02_dim_product</name>
+    <name_sync_with_filename>Y</name_sync_with_filename>
+    <description>Standalone Hop-native build of warehouse.dim_product (isolated for debugging). Replace each Dummy with the real transform. Surrogate product_key is minted by the DB (DEFAULT nextval) - do NOT map it in Table Output. category_name + department are denormalized here (star, not snowflake).</description>
+    <pipeline_type>Normal</pipeline_type>
+    <capture_transform_performance>N</capture_transform_performance>
+  </info>
+
+  <order>
+    <hop><from>Read staging.products</from><to>Lookup category</to><enabled>Y</enabled></hop>
+    <hop><from>Lookup category</from><to>Filter product_id</to><enabled>Y</enabled></hop>
+    <hop><from>Filter product_id</from><to>Select and rename</to><enabled>Y</enabled></hop>
+    <hop><from>Select and rename</from><to>Write dim_product</to><enabled>Y</enabled></hop>
+  </order>
+
+  <transform><name>Read staging.products</name><type>Dummy</type><description>Replace with Table Input: SELECT * FROM staging.products (connection DuckDB_Lab1).</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>64</xloc><yloc>80</yloc></GUI></transform>
+  <transform><name>Lookup category</name><type>Dummy</type><description>Replace with Database Lookup on staging.categories (key category_id) returning category_name, department. LEFT JOIN: leave "Do not pass the row if the lookup fails" UNCHECKED so products without a category are kept (NULL). Stream Lookup is an alternative.</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>240</xloc><yloc>80</yloc></GUI></transform>
+  <transform><name>Filter product_id</name><type>Dummy</type><description>Replace with Filter Rows: product_id IS NOT NULL.</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>416</xloc><yloc>80</yloc></GUI></transform>
+  <transform><name>Select and rename</name><type>Dummy</type><description>Replace with Select Values: rename product_id -> product_id_src; final order = dim_product schema WITHOUT product_key (product_id_src, product_name, category_id, category_name, department, unit_price, cost_price, active_flag).</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>592</xloc><yloc>80</yloc></GUI></transform>
+  <transform><name>Write dim_product</name><type>Dummy</type><description>Replace with Table Output: warehouse.dim_product, truncate = Y. Do NOT map product_key (DB fills it via DEFAULT nextval).</description><distribute>Y</distribute><copies>1</copies><partitioning><method>none</method><schema_name/></partitioning><attributes/><GUI><xloc>768</xloc><yloc>80</yloc></GUI></transform>
+
+  <transform_error_handling/>
+  <attributes/>
+</pipeline>

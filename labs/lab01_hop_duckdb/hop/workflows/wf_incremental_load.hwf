@@ -1,8 +1,8 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <workflow>
   <name>wf_incremental_load</name>
   <name_sync_with_filename>Y</name_sync_with_filename>
-  <description>Incremental load: append April 2025 batch to staging, then rebuild facts.</description>
+  <description>Incremental load: append April 2025 batch to staging, rebuild facts, then post-load checks.</description>
   <parameters/>
 
   <actions>
@@ -30,7 +30,7 @@
       <description/>
       <type>PIPELINE</type>
       <attributes/>
-      <filename>hop/pipelines/p04_incremental_load.hpl</filename>
+      <filename>${PROJECT_HOME}/hop/pipelines/p04_incremental_load.hpl</filename>
       <run_configuration>local</run_configuration>
       <wait_until_finished>Y</wait_until_finished>
       <params_from_previous>N</params_from_previous>
@@ -55,7 +55,7 @@
       <description/>
       <type>PIPELINE</type>
       <attributes/>
-      <filename>hop/pipelines/p03_build_facts.hpl</filename>
+      <filename>${PROJECT_HOME}/hop/pipelines/p03_build_facts.hpl</filename>
       <run_configuration>local</run_configuration>
       <wait_until_finished>Y</wait_until_finished>
       <params_from_previous>N</params_from_previous>
@@ -76,25 +76,84 @@
     </action>
 
     <action>
-      <name>SUCCESS</name>
-      <description/>
-      <type>DUMMY</type>
+      <name>Eval fact_sales = 182</name>
+      <description>Assert warehouse.fact_sales grew to exactly 182 rows after the April batch.</description>
+      <type>EVAL_TABLE_CONTENT</type>
       <attributes/>
+      <connection>DuckDB_Lab1</connection>
+      <schemaname>warehouse</schemaname>
+      <tablename>fact_sales</tablename>
+      <success_condition>rows_count_equal</success_condition>
+      <limit>182</limit>
+      <is_custom_sql>N</is_custom_sql>
+      <is_usevars>N</is_usevars>
+      <add_rows_result>N</add_rows_result>
+      <clear_result_rows>Y</clear_result_rows>
+      <clear_result_files>Y</clear_result_files>
+      <custom_sql/>
       <parallel>N</parallel>
       <xloc>544</xloc>
       <yloc>80</yloc>
       <attributes_hac/>
     </action>
+
+    <action>
+      <name>Run checks</name>
+      <description>Shared post-load invariants (fact_stock=22, fact_budget=12, no NULL keys).</description>
+      <type>WORKFLOW</type>
+      <attributes/>
+      <filename>${PROJECT_HOME}/hop/workflows/wf_checks.hwf</filename>
+      <run_configuration>local</run_configuration>
+      <wait_until_finished>Y</wait_until_finished>
+      <params_from_previous>N</params_from_previous>
+      <exec_per_row>N</exec_per_row>
+      <set_logfile>N</set_logfile><logfile/><logext/>
+      <set_append_logfile>N</set_append_logfile>
+      <create_parent_folder>N</create_parent_folder>
+      <add_date>N</add_date><add_time>N</add_time>
+      <loglevel>Basic</loglevel>
+      <parameters><pass_all_parameters>Y</pass_all_parameters></parameters>
+      <parallel>N</parallel>
+      <xloc>704</xloc>
+      <yloc>80</yloc>
+      <attributes_hac/>
+    </action>
+
+    <action>
+      <name>SUCCESS</name>
+      <description/>
+      <type>DUMMY</type>
+      <attributes/>
+      <parallel>N</parallel>
+      <xloc>864</xloc>
+      <yloc>80</yloc>
+      <attributes_hac/>
+    </action>
+
+    <action>
+      <name>Abort on failed check</name>
+      <description>The incremental load did not produce the expected warehouse state.</description>
+      <type>ABORT</type>
+      <attributes/>
+      <message>Incremental load check failed: warehouse.fact_sales is not 182 rows (or a shared invariant failed). Verify the April batch / watermark.</message>
+      <always_log_rows>Y</always_log_rows>
+      <parallel>N</parallel>
+      <xloc>624</xloc>
+      <yloc>240</yloc>
+      <attributes_hac/>
+    </action>
   </actions>
 
   <hops>
-    <hop><from>Start</from>              <to>p04 Incremental Load</to><enabled>Y</enabled><evaluation>Y</evaluation><unconditional>Y</unconditional></hop>
-    <hop><from>p04 Incremental Load</from><to>p03 Rebuild Facts</to>  <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
-    <hop><from>p03 Rebuild Facts</from>  <to>SUCCESS</to>             <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>Start</from>                <to>p04 Incremental Load</to> <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>Y</unconditional></hop>
+    <hop><from>p04 Incremental Load</from> <to>p03 Rebuild Facts</to>    <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>p03 Rebuild Facts</from>    <to>Eval fact_sales = 182</to><enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>Eval fact_sales = 182</from><to>Run checks</to>           <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>Run checks</from>           <to>SUCCESS</to>              <enabled>Y</enabled><evaluation>Y</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>Eval fact_sales = 182</from><to>Abort on failed check</to><enabled>Y</enabled><evaluation>N</evaluation><unconditional>N</unconditional></hop>
+    <hop><from>Run checks</from>           <to>Abort on failed check</to><enabled>Y</enabled><evaluation>N</evaluation><unconditional>N</unconditional></hop>
   </hops>
 
   <notepads/>
   <attributes/>
 </workflow>
-
-

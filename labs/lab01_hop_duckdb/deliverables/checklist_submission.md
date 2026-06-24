@@ -5,7 +5,7 @@
 
 À la fin de la Partie A, vérifier :
 
-- [ ] Le pipeline Apache Hop est fourni ou capturé.
+- [ ] Le pipeline `p01_csv_to_staging` est construit/capturé dans Hop GUI (les 8 flux, dont `staging.budget`).
 - [ ] La base DuckDB est créée localement.
 - [ ] Les tables `staging.*` existent.
 - [ ] Les scripts SQL d'exploration ont été exécutés.
@@ -16,8 +16,7 @@
 
 ## Partie B (si réalisée)
 
-- [ ] Capture d'écran du pipeline `p01_csv_to_staging` complété dans Hop GUI (les 7 flux).
 - [ ] Workflow `wf_initial_load` ouvert et exécuté dans Hop GUI.
 - [ ] Capture d'écran du workflow `wf_initial_load` après exécution réussie (actions en vert).
 - [ ] Résultat de la requête `52_actuals_vs_budget.sql` (copie texte ou capture).
-- [ ] Réponses aux questions d'analyse des parties B-1 à B-5 (document texte).
+- [ ] Réponses aux questions d'analyse des parties B-1 à B-4 (document texte).

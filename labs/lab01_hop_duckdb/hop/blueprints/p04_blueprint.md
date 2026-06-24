@@ -1,11 +1,16 @@
-# Blueprint - p04_incremental_load
+# Blueprint - p04_incremental_load — notes approfondies
 
+> **La recette de construction** (flux des transforms + réglages clés du dialogue GUI) est
+> dans `../../lab01_consignes.md`, **Partie B-3**. Ce blueprint ne garde que les notes
+> approfondies et les pièges.
 > Concepts Hop (pipeline vs workflow, transform, Run) : `../../docs/apache_hop_concepts.md`.
-> Pattern watermark (rationale) : `../../docs/incremental_load_pattern.md`.
+> Modele mental full vs incremental + pattern watermark (a lire d'abord) : `../../docs/incremental_load_pattern.md`.
 
 ## Objectif
 
 Charger le batch d'avril 2025 dans `staging.*` avec le pattern watermark, puis laisser `p03_build_facts` reconstruire les faits depuis staging et les dimensions.
+
+![p04 chargement incremental](../../docs/diagrams/p04_incremental_canvas.png)
 
 ## Flow Hop attendu
 
@@ -55,17 +60,11 @@ SELECT * FROM control.load_watermark ORDER BY table_name;
 -- Attendu : orders -> 2025-04-20, payments -> 2025-04-21
 
 SELECT COUNT(*) FROM warehouse.fact_sales;
--- Attendu apres p03 : 19
+-- Attendu apres p03 : 182
 ```
 
-## Reglages cles par transform (dialogue GUI)
-
-| Transform | Reglages a verifier dans le dialogue |
-|-----------|--------------------------------------|
-| CSV Input | Filename `${DATA_DIR}/orders_april.csv` (idem order_items_april / payments_april) ; memes types que le chargement initial |
-| Filter Rows | Condition `order_date > watermark` (resp. `payment_date > watermark`) pour ne garder que le nouveau batch |
-| Database Lookup | Sur `staging.orders` / `staging.order_items` / `staging.payments` par cle naturelle ; sert a ecarter les doublons deja charges |
-| Table Output | Connection `DuckDB_Lab1` ; schema `staging` ; **Truncate `N`** (append du batch, pas de remise a zero) |
+> Réglages détaillés du dialogue GUI (CSV Input, Filter Rows, Database Lookup, Table Output
+> **Truncate `N`**) : tableau « Réglages clés par transform » de la **Partie B-3** des consignes.
 
 ## Pieges courants
 
