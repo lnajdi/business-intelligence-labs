@@ -27,9 +27,9 @@ cd labs/lab01_hop_duckdb
 Suivre ensuite :
 
 1. `SETUP.md` à la racine du dépôt pour la configuration commune (Git, dépôt, éditeur).
-2. `labs/lab01_hop_duckdb/prerequisites.md` pour les outils spécifiques au lab (DuckDB, Apache Hop).
-3. `labs/lab01_hop_duckdb/README.md` pour le déroulé du lab.
-4. `labs/lab01_hop_duckdb/lab1_consignes.md` pour le travail demandé.
+2. `labs/lab01_hop_duckdb/README.md` pour la vue d'ensemble et le déroulé du lab.
+3. `labs/lab01_hop_duckdb/guide_setup.md` pour le setup du lab (outils DuckDB et Apache Hop, projet Hop, connexion DuckDB, création des schémas).
+4. `labs/lab01_hop_duckdb/lab01_consignes.md` pour le travail demandé.
 
 ## Organisation du travail
 

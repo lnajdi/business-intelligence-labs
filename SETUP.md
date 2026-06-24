@@ -2,7 +2,7 @@
 
 Ce guide prépare votre machine pour les labs BI. Il couvre uniquement la configuration
 **commune à tous les labs**. Chaque lab installe ensuite les outils qui lui sont propres
-(DuckDB, Apache Hop, dbt, ClickHouse…) via son fichier `prerequisites.md`.
+(DuckDB, Apache Hop, dbt, ClickHouse…) via son fichier `guide_setup.md`.
 
 ## 1. Installer Git
 
@@ -40,12 +40,12 @@ Utiliser VS Code, IntelliJ, Cursor, Sublime Text ou un autre éditeur de texte.
 ## 4. Outils spécifiques à chaque lab
 
 Les labs sont publiés progressivement et reposent sur des outils différents. Les logiciels à
-installer, leur vérification et un test d'installation sont décrits dans le `prerequisites.md`
+installer, leur vérification et un test d'installation sont décrits dans le `guide_setup.md`
 du lab concerné, par exemple :
 
-- Lab 1 → `labs/lab01_hop_duckdb/prerequisites.md` (DuckDB CLI, Apache Hop, driver JDBC).
+- Lab 1 → `labs/lab01_hop_duckdb/guide_setup.md` (DuckDB CLI, Apache Hop, driver JDBC, projet Hop, schémas).
 
-Avant chaque séance, ouvrir le `prerequisites.md` du lab du jour et installer les outils
+Avant chaque séance, ouvrir le `guide_setup.md` du lab du jour et installer les outils
 indiqués.
 
 ## Notes
