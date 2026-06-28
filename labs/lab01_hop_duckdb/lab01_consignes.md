@@ -32,6 +32,11 @@ La direction souhaite un premier diagnostic :
 > **Nouveau sur Apache Hop ?** Lire `docs/apache_hop_concepts.md` (projet, pipeline
 > vs workflow, transform, exécution Run, connexion DuckDB) avant de commencer.
 
+> **Convention des recettes.** Pour chaque pipeline, les gestes de base dans Hop GUI (créer un
+> pipeline, déposer un transform, tirer un hop, Run et lire les compteurs) sont dans
+> `docs/apache_hop_concepts.md` §4 ; la « leçon » détaillée et les pièges sont dans le blueprint
+> du pipeline (`hop/blueprints/*.md`), pointé à chaque recette.
+
 On construit un **pipeline visuel** plutôt que d'écrire du SQL à la main : chaque
 étape (lecture CSV, contrôle, écriture) est explicite et rejouable. La couche
 `staging.*` est une **copie typée** des sources (conversion de types, alignement des
@@ -67,9 +72,7 @@ Les fichiers `orders_april.csv`, `order_items_april.csv` et `payments_april.csv`
 
 **Recette de construction (`p01_csv_to_staging`) — à reproduire pour chaque table.**
 
-> Gestes de base dans Hop GUI (créer un pipeline, déposer un transform, tirer un hop,
-> Run et lire les compteurs) : `docs/apache_hop_concepts.md` §4. Pour la « leçon »
-> détaillée et les pièges, voir `hop/blueprints/p01_blueprint.md`.
+> « La leçon » détaillée et les pièges : `hop/blueprints/p01_blueprint.md`.
 
 Flux d'une table (exemple `customers`) :
 
@@ -96,10 +99,9 @@ Réglages clés par transform (dialogue GUI) :
 | Table Output | Connection `DuckDB_Lab1` ; Schema `staging` ; Table `customers` ; **Truncate table `Y`** (chargement complet) |
 | Text File Output | Fichier `data/processed/rejects_customers.csv` (journal des rejets, `reason_code = MISSING_KEY`) |
 
-> Après le Run, le contrôle se réconcilie : `lignes chargées + rejets = lignes du CSV`.
 > Le `Validate <id>` ne rejette qu'un cas **technique** (ligne sans identifiant propre) ;
 > les rejets métier/référentiels (orphelins, doublons, statut) sont traités plus tard, au
-> chargement warehouse (Partie B-1) — **une condition, une seule couche**.
+> chargement warehouse (Partie B-1) — voir l'encadré « rejet technique vs métier » ci-dessous.
 
 Reproduire ce même flux (CSV Input → Filter Rows → Select Values → Table Output, + branche
 rejets) pour chacune des tables `staging.*` listées ci-dessus.
@@ -206,7 +208,7 @@ warehouse.*    (dimensions, faits, budget : données nettoyées et conformées)
 control.*      (watermarks de chargement, log)
 ```
 
-`staging.*` n'est pas une couche métier nettoyée. Elle sert de zone d'atterrissage typée : conversion de types, alignement de schéma, rejets techniques si une ligne est illisible. La déduplication, la normalisation, les jointures, les filtres métier, le mapping des clés de substitution et les calculs de mesures se font pendant les chargements `warehouse.*`.
+`staging.*` n'est pas une couche métier nettoyée mais une zone d'atterrissage typée ; déduplication, normalisation, jointures, filtres métier, mapping des clés de substitution et calculs de mesures se font pendant les chargements `warehouse.*` (règles détaillées : Partie A — Étape 1).
 
 Les scripts SQL restent disponibles comme oracle de validation et chemin de secours CLI. Le workflow principal à construire dans Hop doit utiliser des transforms Hop natifs, pas des transformations SQL `INSERT ... SELECT`.
 
@@ -226,11 +228,11 @@ Les scripts SQL restent disponibles comme oracle de validation et chemin de seco
 > duckdb duckdb/lab1.duckdb ".read sql/40_create_control_schema.sql"
 > ```
 >
-> `20_create_warehouse_schema.sql` crée des **séquences** `warehouse.seq_*` ; chaque colonne
-> clé (`customer_key`, `product_key`, `channel_key`, `sales_key`, `stock_key`) a un
-> `DEFAULT nextval(...)`. **Conséquence dans Hop :** le `Table Output` **ne mappe pas** la
-> colonne clé — DuckDB la remplit. Exceptions : `dim_date.date_key` (YYYYMMDD calculé) et
-> `fact_budget.budget_id` (clé naturelle).
+> `20_create_warehouse_schema.sql` crée les **séquences** `warehouse.seq_*` qui alimentent les
+> colonnes clés (`customer_key`, `product_key`, `channel_key`, `sales_key`, `stock_key`) via
+> `DEFAULT nextval(...)`. Exceptions : `dim_date.date_key` (YYYYMMDD calculé) et
+> `fact_budget.budget_id` (clé naturelle). Conséquence côté Hop (le `Table Output` ne mappe pas
+> la colonne clé) : voir l'encadré « clés de substitution » en Partie B-1.
 
 ## Objectifs
 
@@ -253,10 +255,10 @@ Règles appliquées pendant les chargements warehouse :
 - Mouvements de stock : `movement_type IN ('IN','OUT')`, références produits valides
 - Faits : mapping vers les clés de substitution et calcul de `gross_amount`, `net_amount`, `cost_amount`, `margin_amount`
 
-> `fact_sales.sales_key` est une clé de substitution **frappée par la base** (séquence DuckDB +
-> `DEFAULT nextval`) : le `Table Output` n'inclut pas la colonne clé. La clé naturelle `order_item_id`
-> est conservée comme `order_item_id_src`. Même principe pour toutes les clés de substitution du
-> warehouse (`customer_key`, `product_key`, `channel_key`, `stock_key`).
+> **Clés de substitution — frappées par la base.** Chaque `*_key` du warehouse (`customer_key`,
+> `product_key`, `channel_key`, `sales_key`, `stock_key`) est une séquence DuckDB +
+> `DEFAULT nextval` : le `Table Output` **n'inclut pas** la colonne clé, DuckDB la remplit. La
+> clé naturelle est conservée à côté (ex. `order_item_id` → `order_item_id_src`).
 
 > **`dim_date` (calendrier généré) — à construire AVANT les faits.** Les `Database Lookup` de
 > `fact_sales`/`fact_stock` (p03) résolvent `date_key` depuis la date : si `dim_date` est vide,
@@ -279,7 +281,7 @@ Règles appliquées pendant les chargements warehouse :
 > - **dim_customer** : déduplication `Sort Rows → Unique Rows` (sur `customer_id`), normalisation ville
 >   (`Formula` `UPPER(TRIM)` → `Value Mapper`), email par défaut (`If Null`), + enrichissement
 >   `country_name` / `region` / `tenure_days`. `customer_id NOT NULL` **n'est pas re-testé** (déjà
->   garanti par staging — une condition, une couche).
+>   garanti par staging).
 > - **dim_product** : catégorie dénormalisée via `Database Lookup staging.categories` en **LEFT JOIN**
 >   (case « Do not pass the row if the lookup fails » **décochée**) — modèle en étoile, pas de dim_category.
 > - **dim_channel** : `DISTINCT` canal (`Sort Rows → Unique Rows`) + `Value Mapper` pour `channel_type` ;
@@ -307,15 +309,14 @@ Voir `docs/star_schema_design.md` pour l'ERD complet et les définitions de grai
 
 **Recettes de construction (p02 dimensions, p03 faits).**
 
-> Gestes de base dans Hop GUI : `docs/apache_hop_concepts.md` §4. Pour « la leçon »
-> détaillée (ce que `Calculator` sait/ne sait pas, conventions à confirmer) et les pièges,
-> voir `hop/blueprints/p02_p03_blueprint.md`.
+> « La leçon » détaillée (ce que `Calculator` sait/ne sait pas, conventions à confirmer) et
+> les pièges : `hop/blueprints/p02_p03_blueprint.md`.
 
 **`dim_customer`** (`p02_dim_customer.hpl`) :
 
 ```text
 Table Input staging.customers
-  -> Filter Rows : customer_name NOT NULL      (PAS customer_id : déjà garanti par staging p01)
+  -> Filter Rows : customer_name NOT NULL      (customer_id déjà garanti par staging p01)
   -> Sort Rows   : customer_id ASC, signup_date ASC, customer_name ASC
   -> Unique Rows : comparaison = customer_id   (garde la 1re ligne du tri)
   -> Formula     : city_norm = UPPER(TRIM(city))            (Calculator sait Upper, PAS Trim)
@@ -425,8 +426,6 @@ Table Input staging.stock_movements
 > pipelines ne sont pas complétés (ou que l'oracle `sql/50_initial_full_load.sql` n'a pas peuplé le
 > warehouse)** : un contrôle rouge signale un chargement incomplet, pas un lab cassé.
 
-![Workflow initial Hop](docs/diagrams/workflow_initial_canvas.png)
-
 Chemin de secours CLI :
 
 ```bash
@@ -464,15 +463,15 @@ Simuler l'arrivée d'un nouveau batch (commandes d'avril 2025).
 
 Le watermark `control.load_watermark` stocke la date du dernier chargement. Le pipeline incrémental ajoute les lignes typées dans `staging.*`, puis reconstruit les faits concernés.
 
-**Chemin Hop (principal) :** ouvrir `hop/workflows/wf_incremental_load.hwf` dans Hop GUI et l'exécuter (Run). Le workflow orchestre `p04 → p03` (rebuild des faits), puis les **contrôles** (`Eval fact_sales = 182` + sous-workflow `wf_checks.hwf`). Comme en B-2, un contrôle rouge = chargement incomplet (ou oracle `sql/51_incremental_load.sql` non exécuté), pas un lab cassé.
+**Chemin Hop (principal) :** ouvrir `hop/workflows/wf_incremental_load.hwf` dans Hop GUI et l'exécuter (Run). Le workflow orchestre `p04 → p03` (rebuild des faits), puis les **contrôles** (`Eval fact_sales = 182` + sous-workflow `wf_checks.hwf`) — mêmes contrôles intégrés qu'en B-2 (voir l'encadré là-bas).
 
 ![p04 chargement incremental](docs/diagrams/p04_incremental_canvas.png)
 
 **Recette de construction (`p04_incremental_load`).**
 
-> Gestes de base : `docs/apache_hop_concepts.md` §4. « La leçon » détaillée et les pièges :
-> `hop/blueprints/p04_blueprint.md`. `p04` charge seulement le batch dans `staging.*` et met à
-> jour les watermarks ; c'est `wf_incremental_load.hwf` qui enchaîne ensuite `p03` pour les faits.
+> « La leçon » détaillée et les pièges : `hop/blueprints/p04_blueprint.md`. `p04` charge
+> seulement le batch dans `staging.*` et met à jour les watermarks ; c'est
+> `wf_incremental_load.hwf` qui enchaîne ensuite `p03` pour les faits.
 
 Trois branches parallèles (une par source d'avril) + mise à jour des watermarks :
 
@@ -556,9 +555,9 @@ Comparer les ventes réelles aux objectifs budgétaires. Le budget transite par 
 
 **Recette de construction (`p05_load_budget`).**
 
-> Gestes de base : `docs/apache_hop_concepts.md` §4. « La leçon » et les pièges :
-> `hop/blueprints/p05_blueprint.md`. `p05` requiert que `staging.budget` (via p01) **et**
-> `warehouse.dim_channel` (via p02) existent → dans `wf_initial_load`, p05 s'exécute après p02/p03.
+> « La leçon » et les pièges : `hop/blueprints/p05_blueprint.md`. `p05` requiert que
+> `staging.budget` (via p01) **et** `warehouse.dim_channel` (via p02) existent → dans
+> `wf_initial_load`, p05 s'exécute après p02/p03.
 
 ```text
 Table Input staging.budget
@@ -590,14 +589,16 @@ duckdb duckdb/lab1.duckdb ".read sql/52_actuals_vs_budget.sql"
 
 ### Partie B-5 — Pipelines Hop (60 min)
 
-Récapitulatif des pipelines à construire. La **recette de construction** de chacun (flux des
-transforms + réglages clés du dialogue GUI) figure dans la partie où le pipeline est demandé :
+Récapitulatif : la **recette de construction** de chaque pipeline (flux des transforms +
+réglages clés du dialogue GUI) figure dans la partie où il est demandé.
 
-- `p01_csv_to_staging` : CSV → `staging.*` (les 8 tables, dont `staging.budget`) — **déjà construit en Partie A — Étape 1**
-- `p02_dim_customer` / `p02_dim_product` / `p02_dim_channel` : `staging.*` → dimensions `warehouse.*` (un pipeline par dimension ; `dim_date` via l'action SQL `sql/21_dim_date.sql`) — **recette : Partie B-1**
-- `p03_build_facts` : `staging.*` + dimensions → faits — **recette : Partie B-1**
-- `p04_incremental_load` : batch avril → `staging.*` + watermarks — **recette : Partie B-3**
-- `p05_load_budget` : `staging.budget` → `warehouse.fact_budget` — **recette : Partie B-4**
+| Pipeline | Recette |
+|----------|---------|
+| `p01_csv_to_staging` | Partie A — Étape 1 (**déjà construit**) |
+| `p02_dim_customer` / `p02_dim_product` / `p02_dim_channel` | Partie B-1 (`dim_date` via l'action SQL `sql/21_dim_date.sql`) |
+| `p03_build_facts` | Partie B-1 |
+| `p04_incremental_load` | Partie B-3 |
+| `p05_load_budget` | Partie B-4 |
 
 Ces pipelines sont orchestrés par les workflows `hop/workflows/wf_initial_load.hwf` (chargement complet) et `hop/workflows/wf_incremental_load.hwf` (chargement incrémental), exécutés en Parties B-2 et B-3.
 

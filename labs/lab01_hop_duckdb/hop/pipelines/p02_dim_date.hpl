@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pipeline>
+  <info>
+    <name>p02_dim_date</name>
+    <name_sync_with_filename>Y</name_sync_with_filename>
+    <description>DEMO NATIVE de dim_date (1096 jours, 2024-01-01 -> 2026-12-31), fournie pour exploration. Montre ce que Calculator sait faire (ADD_DAYS, YEAR/MONTH/DAY/QUARTER/DAY_OF_WEEK, date_key = year*10000+month*100+day via constantes) et ce qu'il fait moins bien (libelles via Value Mapper enumere ; convention jour de semaine). Ouvrez-la pour comprendre POURQUOI le calendrier est finalement construit en SQL.
+
+STANDALONE : ce pipeline N'EST PAS cable dans wf_initial_load. Le chemin orchestre retenu reste l'action SQL sql/21_dim_date.sql (calendrier genere, sans source ni join). A executer isolement (Run) pour la demo uniquement.
+
+CAVEAT convention : Calculator DAY_OF_WEEK suit la convention Java (1=Dimanche..7=Samedi) alors que DuckDB DAYOFWEEK = 0=Dimanche..6=Samedi. Le SQL fait foi pour day_of_week/is_weekend.</description>
+    <pipeline_type>Normal</pipeline_type>
+    <capture_transform_performance>N</capture_transform_performance>
+  </info>
+
+  <order>
+    <hop><from>Generate 1096 rows</from><to>Add day offset</to><enabled>Y</enabled></hop>
+    <hop><from>Add day offset</from><to>Calc date and parts</to><enabled>Y</enabled></hop>
+    <hop><from>Calc date and parts</from><to>Map month_name</to><enabled>Y</enabled></hop>
+    <hop><from>Map month_name</from><to>Map season</to><enabled>Y</enabled></hop>
+    <hop><from>Map season</from><to>Map day_name</to><enabled>Y</enabled></hop>
+    <hop><from>Map day_name</from><to>Map is_weekend</to><enabled>Y</enabled></hop>
+    <hop><from>Map is_weekend</from><to>Select final</to><enabled>Y</enabled></hop>
+    <hop><from>Select final</from><to>Write dim_date</to><enabled>Y</enabled></hop>
+  </order>
+
+  <transform>
+    <name>Generate 1096 rows</name>
+    <type>RowGenerator</type>
+    <description>Genere 1096 lignes portant la date de base 2024-01-01 (champ base_date).</description>
+    <distribute>Y</distribute><copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <fields>
+      <field>
+        <name>base_date</name><type>Date</type><format>yyyy-MM-dd</format>
+        <currency/><decimal/><group/><nullif>2024-01-01</nullif>
+        <length>-1</length><precision>-1</precision><set_empty_string>N</set_empty_string>
+      </field>
+    </fields>
+    <limit>1096</limit>
+    <never_ending>N</never_ending>
+    <interval_in_ms>5000</interval_in_ms>
+    <row_time_field>now</row_time_field>
+    <last_time_field>FiveSecondsAgo</last_time_field>
+    <attributes/><GUI><xloc>64</xloc><yloc>80</yloc></GUI>
+  </transform>
+
+  <transform>
+    <name>Add day offset</name>
+    <type>Sequence</type>
+    <description>Compteur 0..1095 (start_at=0) : nombre de jours a ajouter a base_date.</description>
+    <distribute>Y</distribute><copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <valuename>day_offset</valuename>
+    <use_database>N</use_database><connection/><schema/><seqname>SEQ_</seqname>
+    <use_counter>Y</use_counter><counter_name/>
+    <start_at>0</start_at><increment_by>1</increment_by><max_value>999999999</max_value>
+    <attributes/><GUI><xloc>240</xloc><yloc>80</yloc></GUI>
+  </transform>
+
+  <transform>
+    <name>Calc date and parts</name>
+    <type>Calculator</type>
+    <distribute>Y</distribute><copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <failIfNoFile>Y</failIfNoFile>
+    <calculation>
+      <field_name>date_actual</field_name><calc_type>ADD_DAYS</calc_type>
+      <field_a>base_date</field_a><field_b>day_offset</field_b><field_c/>
+      <value_type>Date</value_type><value_length>-1</value_length><value_precision>-1</value_precision>
+      <remove>N</remove><conversion_mask>yyyy-MM-dd</conversion_mask><decimal_symbol/><grouping_symbol/><currency_symbol/>
+    </calculation>
+    <calculation>
+      <field_name>year</field_name><calc_type>YEAR_OF_DATE</calc_type>
+      <field_a>date_actual</field_a><field_b/><field_c/>
+      <value_type>Integer</value_type><value_length>-1</value_length><value_precision>-1</value_precision>
+      <remove>N</remove><conversion_mask/><decimal_symbol/><grouping_symbol/><currency_symbol/>
+    </calculation>
+    <calculation>
+      <field_name>quarter</field_name><calc_type>QUARTER_OF_DATE</calc_type>
+      <field_a>date_actual</field_a><field_b/><field_c/>
+      <value_type>Integer</value_type><value_length>-1</value_length><value_precision>-1</value_precision>
+      <remove>N</remove><conversion_mask/><decimal_symbol/><grouping_symbol/><currency_symbol/>
+    </calculation>
+    <calculation>
+      <field_name>month_num</field_name><calc_type>MONTH_OF_DATE</calc_type>
+      <field_a>date_actual</field_a><field_b/><field_c/>
+      <value_type>Integer</value_type><value_length>-1</value_length><value_precision>-1</value_precision>
+      <remove>N</remove><conversion_mask/><decimal_symbol/><grouping_symbol/><currency_symbol/>
+    </calculation>
+    <calculation>
+      <field_name>day_num</field_name><calc_type>DAY_OF_MONTH</calc_type>
+      <field_a>date_actual</field_a><field_b/><field_c/>
+      <value_type>Integer</value_type><value_length>-1</value_length><value_precision>-1</value_precision>
+      <remove>N</remove><conversion_mask/><decimal_symbol/><grouping_symbol/><currency_symbol/>
+    </calculation>
+    <calculation>
+      <field_name>day_of_week</field_name><calc_type>DAY_OF_WEEK</calc_type>
+      <field_a>date_actual</field_a><field_b/><field_c/>
+      <value_type>Integer</value_type><value_length>-1</value_length><value_precision>-1</value_precision>
+      <remove>N</remove><conversion_mask/><decimal_symbol/><grouping_symbol/><currency_symbol/>
+    </calculation>
+    <calculation>
+      <field_name>c10000</field_name><calc_type>CONSTANT</calc_type>
+      <field_a>10000</field_a><field_b/><field_c/>
+      <value_type>Integer</value_type><value_length>-1</value_length><value_precision>-1</value_precision>
+      <remove>Y</remove><conversion_mask/><decimal_symbol/><grouping_symbol/><currency_symbol/>
+    </calculation>
+    <calculation>
+      <field_name>c100</field_name><calc_type>CONSTANT</calc_type>
+      <field_a>100</field_a><field_b/><field_c/>
+      <value_type>Integer</value_type><value_length>-1</value_length><value_precision>-1</value_precision>
+      <remove>Y</remove><conversion_mask/><decimal_symbol/><grouping_symbol/><currency_symbol/>
+    </calculation>
+    <calculation>
+      <field_name>yk</field_name><calc_type>MULTIPLY</calc_type>
+      <field_a>year</field_a><field_b>c10000</field_b><field_c/>
+      <value_type>Integer</value_type><value_length>-1</value_length><value_precision>-1</value_precision>
+      <remove>Y</remove><conversion_mask/><decimal_symbol/><grouping_symbol/><currency_symbol/>
+    </calculation>
+    <calculation>
+      <field_name>mk</field_name><calc_type>MULTIPLY</calc_type>
+      <field_a>month_num</field_a><field_b>c100</field_b><field_c/>
+      <value_type>Integer</value_type><value_length>-1</value_length><value_precision>-1</value_precision>
+      <remove>Y</remove><conversion_mask/><decimal_symbol/><grouping_symbol/><currency_symbol/>
+    </calculation>
+    <calculation>
+      <field_name>ym</field_name><calc_type>ADD</calc_type>
+      <field_a>yk</field_a><field_b>mk</field_b><field_c/>
+      <value_type>Integer</value_type><value_length>-1</value_length><value_precision>-1</value_precision>
+      <remove>Y</remove><conversion_mask/><decimal_symbol/><grouping_symbol/><currency_symbol/>
+    </calculation>
+    <calculation>
+      <field_name>date_key</field_name><calc_type>ADD</calc_type>
+      <field_a>ym</field_a><field_b>day_num</field_b><field_c/>
+      <value_type>Integer</value_type><value_length>-1</value_length><value_precision>-1</value_precision>
+      <remove>N</remove><conversion_mask/><decimal_symbol/><grouping_symbol/><currency_symbol/>
+    </calculation>
+    <attributes/><GUI><xloc>416</xloc><yloc>80</yloc></GUI>
+  </transform>
+
+  <transform>
+    <name>Map month_name</name>
+    <type>ValueMapper</type>
+    <distribute>Y</distribute><copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <field_to_use>month_num</field_to_use>
+    <target_field>month_name</target_field>
+    <non_match_default>Unknown</non_match_default>
+    <fields>
+      <field><source_value>1</source_value><target_value>January</target_value></field>
+      <field><source_value>2</source_value><target_value>February</target_value></field>
+      <field><source_value>3</source_value><target_value>March</target_value></field>
+      <field><source_value>4</source_value><target_value>April</target_value></field>
+      <field><source_value>5</source_value><target_value>May</target_value></field>
+      <field><source_value>6</source_value><target_value>June</target_value></field>
+      <field><source_value>7</source_value><target_value>July</target_value></field>
+      <field><source_value>8</source_value><target_value>August</target_value></field>
+      <field><source_value>9</source_value><target_value>September</target_value></field>
+      <field><source_value>10</source_value><target_value>October</target_value></field>
+      <field><source_value>11</source_value><target_value>November</target_value></field>
+      <field><source_value>12</source_value><target_value>December</target_value></field>
+    </fields>
+    <attributes/><GUI><xloc>592</xloc><yloc>80</yloc></GUI>
+  </transform>
+
+  <transform>
+    <name>Map season</name>
+    <type>ValueMapper</type>
+    <distribute>Y</distribute><copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <field_to_use>month_num</field_to_use>
+    <target_field>season</target_field>
+    <non_match_default>Unknown</non_match_default>
+    <fields>
+      <field><source_value>12</source_value><target_value>Winter</target_value></field>
+      <field><source_value>1</source_value><target_value>Winter</target_value></field>
+      <field><source_value>2</source_value><target_value>Winter</target_value></field>
+      <field><source_value>3</source_value><target_value>Spring</target_value></field>
+      <field><source_value>4</source_value><target_value>Spring</target_value></field>
+      <field><source_value>5</source_value><target_value>Spring</target_value></field>
+      <field><source_value>6</source_value><target_value>Summer</target_value></field>
+      <field><source_value>7</source_value><target_value>Summer</target_value></field>
+      <field><source_value>8</source_value><target_value>Summer</target_value></field>
+      <field><source_value>9</source_value><target_value>Autumn</target_value></field>
+      <field><source_value>10</source_value><target_value>Autumn</target_value></field>
+      <field><source_value>11</source_value><target_value>Autumn</target_value></field>
+    </fields>
+    <attributes/><GUI><xloc>768</xloc><yloc>80</yloc></GUI>
+  </transform>
+
+  <transform>
+    <name>Map day_name</name>
+    <type>ValueMapper</type>
+    <description>Convention Java (1=Dimanche..7=Samedi). Voir caveat dans la description du pipeline.</description>
+    <distribute>Y</distribute><copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <field_to_use>day_of_week</field_to_use>
+    <target_field>day_name</target_field>
+    <non_match_default>Unknown</non_match_default>
+    <fields>
+      <field><source_value>1</source_value><target_value>Sunday</target_value></field>
+      <field><source_value>2</source_value><target_value>Monday</target_value></field>
+      <field><source_value>3</source_value><target_value>Tuesday</target_value></field>
+      <field><source_value>4</source_value><target_value>Wednesday</target_value></field>
+      <field><source_value>5</source_value><target_value>Thursday</target_value></field>
+      <field><source_value>6</source_value><target_value>Friday</target_value></field>
+      <field><source_value>7</source_value><target_value>Saturday</target_value></field>
+    </fields>
+    <attributes/><GUI><xloc>944</xloc><yloc>80</yloc></GUI>
+  </transform>
+
+  <transform>
+    <name>Map is_weekend</name>
+    <type>ValueMapper</type>
+    <distribute>Y</distribute><copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <field_to_use>day_of_week</field_to_use>
+    <target_field>is_weekend</target_field>
+    <non_match_default>false</non_match_default>
+    <fields>
+      <field><source_value>1</source_value><target_value>true</target_value></field>
+      <field><source_value>7</source_value><target_value>true</target_value></field>
+      <field><source_value>2</source_value><target_value>false</target_value></field>
+      <field><source_value>3</source_value><target_value>false</target_value></field>
+      <field><source_value>4</source_value><target_value>false</target_value></field>
+      <field><source_value>5</source_value><target_value>false</target_value></field>
+      <field><source_value>6</source_value><target_value>false</target_value></field>
+    </fields>
+    <attributes/><GUI><xloc>1120</xloc><yloc>80</yloc></GUI>
+  </transform>
+
+  <transform>
+    <name>Select final</name>
+    <type>SelectValues</type>
+    <description>Ordre final = schema dim_date ; ecarte base_date, day_offset.</description>
+    <distribute>Y</distribute><copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <fields>
+      <field><name>date_key</name></field>
+      <field><name>date_actual</name></field>
+      <field><name>year</name></field>
+      <field><name>quarter</name></field>
+      <field><name>month_num</name></field>
+      <field><name>month_name</name></field>
+      <field><name>day_num</name></field>
+      <field><name>day_name</name></field>
+      <field><name>day_of_week</name></field>
+      <field><name>is_weekend</name></field>
+      <field><name>season</name></field>
+      <select_unspecified>N</select_unspecified>
+    </fields>
+    <attributes/><GUI><xloc>1296</xloc><yloc>80</yloc></GUI>
+  </transform>
+
+  <transform>
+    <name>Write dim_date</name>
+    <type>TableOutput</type>
+    <distribute>Y</distribute><copies>1</copies>
+    <partitioning><method>none</method><schema_name/></partitioning>
+    <connection>DuckDB_Lab1</connection><schema>warehouse</schema><table>dim_date</table>
+    <truncate>Y</truncate><specify_fields>Y</specify_fields><commit>1000</commit><use_batch>Y</use_batch>
+    <return_keys>N</return_keys><tablename_in_field>N</tablename_in_field><tablename_in_table>Y</tablename_in_table>
+    <ignore_errors>N</ignore_errors><partitioning_enabled>N</partitioning_enabled><partitioning_daily>N</partitioning_daily><partitioning_monthly>Y</partitioning_monthly>
+    <fields>
+      <field><column_name>date_key</column_name><stream_name>date_key</stream_name></field>
+      <field><column_name>date_actual</column_name><stream_name>date_actual</stream_name></field>
+      <field><column_name>year</column_name><stream_name>year</stream_name></field>
+      <field><column_name>quarter</column_name><stream_name>quarter</stream_name></field>
+      <field><column_name>month_num</column_name><stream_name>month_num</stream_name></field>
+      <field><column_name>month_name</column_name><stream_name>month_name</stream_name></field>
+      <field><column_name>day_num</column_name><stream_name>day_num</stream_name></field>
+      <field><column_name>day_name</column_name><stream_name>day_name</stream_name></field>
+      <field><column_name>day_of_week</column_name><stream_name>day_of_week</stream_name></field>
+      <field><column_name>is_weekend</column_name><stream_name>is_weekend</stream_name></field>
+      <field><column_name>season</column_name><stream_name>season</stream_name></field>
+    </fields>
+    <attributes/><GUI><xloc>1472</xloc><yloc>80</yloc></GUI>
+  </transform>
+
+  <transform_error_handling/>
+  <attributes/>
+</pipeline>
